@@ -14,7 +14,7 @@ public class Server {
     private final String FILE_PATH = "resources/data.csv"; // Percorso del file CSV per salvare le email
 
     // Costruttore privato del Singleton per caricare le caselle di posta
-    private Server() {
+    public Server() { //--> l'ho messo pubblico così lo creo in server controller
         mailboxes = new HashMap<>(); // Inizializza la mappa delle caselle di posta
         loadMailboxes(); // Carica le email dal file CSV all'avvio del server
     }
