@@ -53,6 +53,10 @@ public class Server {
         return List.of("SUCCESSO"); //  Se tutti i destinatari erano validi, restituisce SUCCESSO
     }
 
+    // Metodo per ottenere la inbox di un utente, quando client chiede di vedere la mail
+    public synchronized List<Mail> getInbox(String userEmail) {
+        return mailboxes.getOrDefault(userEmail, new ArrayList<>()); // Ritorna la lista o una lista vuota
+    }
 
     // Metodo per caricare le email salvate dal file CSV
     private void loadMailboxes() {
