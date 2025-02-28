@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.server.controller.ServerController">
+    <children>
+        <VBox spacing="10" alignment="CENTER">
+            <Label text="Log del Server" />
+            <TextArea fx:id="logArea" editable="false" wrapText="true" prefHeight="300" />
+            <Label text="Utenti Connessi" />
+            <ListView fx:id="userList" prefHeight="150" />
+        </VBox>
+    </children>
+</AnchorPane>
