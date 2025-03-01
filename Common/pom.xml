@@ -12,11 +12,11 @@
     <artifactId>Common</artifactId>
 
     <dependencies>
+        <!-- Dipendenze specifiche per Common -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-base</artifactId>
             <version>17</version>
         </dependency>
     </dependencies>
-
 </project>

@@ -12,7 +12,7 @@
     <artifactId>Server</artifactId>
 
     <dependencies>
-        <!-- Dipendenza dal modulo Common -->
+        <!-- Dipendenza da Common (già ereditata dal pom principale) -->
         <dependency>
             <groupId>com.progettoprog</groupId>
             <artifactId>Common</artifactId>
@@ -27,8 +27,25 @@
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
+            <artifactId>javafx-base</artifactId>
             <version>17</version>
         </dependency>
+
+        <!-- Dipendenze aggiuntive per il server -->
+        <!-- Aggiungi qui eventuali altre dipendenze necessarie per il server -->
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
