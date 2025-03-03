@@ -11,8 +11,8 @@ public class ClientHomeController {
     @FXML
     private TextField emailTextField;  // Campo per inserire l'indirizzo email
 
-    @FXML
-    private Button loginButton;  // Bottone per inviare l'indirizzo email e autenticarsi
+    //@FXML
+    //private Button loginButton;  // Bottone per inviare l'indirizzo email e autenticarsi
 
     // Metodo per gestire il login con l'indirizzo email
     @FXML

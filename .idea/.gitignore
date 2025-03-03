@@ -6,3 +6,31 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+# Ignore build directories
+/build/
+/bin/
+/out/
+/obj/
+
+# Ignore temporary files from IDEs
+.vscode/
+/.idea/
+/*.iml
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore compiled C/C++ files
+*.o
+*.a
+*.so
+*.exe
+*.dll
+
+# Ignore log files
+*.log
+
+# Ignore CSV file for records
+ex1/records/*.csv

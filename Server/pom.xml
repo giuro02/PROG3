@@ -12,14 +12,13 @@
     <artifactId>Server</artifactId>
 
     <dependencies>
-        <!-- Dipendenza da Common (già ereditata dal pom principale) -->
         <dependency>
             <groupId>com.progettoprog</groupId>
             <artifactId>Common</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-        <!-- Dipendenze JavaFX -->
+        <!-- JavaFX -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -27,12 +26,9 @@
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
-            <artifactId>javafx-base</artifactId>
+            <artifactId>javafx-fxml</artifactId>
             <version>17</version>
         </dependency>
-
-        <!-- Dipendenze aggiuntive per il server -->
-        <!-- Aggiungi qui eventuali altre dipendenze necessarie per il server -->
     </dependencies>
 
     <build>

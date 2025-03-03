@@ -3,6 +3,7 @@ module com.server {
     requires javafx.controls;
     requires javafx.fxml;
     requires com.common; // Assicura che il modulo `Common` sia richiesto
+    requires javafx.base;  // Aggiungi javafx.base
 
     exports com.server;
     exports com.server.model;

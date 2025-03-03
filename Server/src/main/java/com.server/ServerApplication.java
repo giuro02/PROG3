@@ -12,7 +12,7 @@ public class ServerApplication extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader fxmlLoader = new FXMLLoader(ServerApplication.class.getResource("/server.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(ServerApplication.class.getResource("/server-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 600, 400);
         stage.setTitle("Server Mail - Log");
         stage.setScene(scene);

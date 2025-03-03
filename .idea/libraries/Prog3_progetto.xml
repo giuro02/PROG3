@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="Prog3_progetto">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx-swt.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.base.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.controls.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.fxml.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.graphics.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.media.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.swing.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.web.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
