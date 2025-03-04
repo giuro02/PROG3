@@ -35,4 +35,6 @@ public class Mail implements Serializable {
     public String toString() {
         return sender + ": " + title;
     }
+
+
 }

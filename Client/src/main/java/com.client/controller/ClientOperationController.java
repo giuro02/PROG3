@@ -18,10 +18,12 @@ import java.util.List;
 
 public class ClientOperationController {
 
+    private Mail selected_mail;
+
     private static String email;
 
     @FXML
-    private ListView<String> list_mail;
+    private ListView<Mail> list_mail;
 
     @FXML
     private TextArea mail_text;
@@ -34,18 +36,6 @@ public class ClientOperationController {
 
     public static void setEmail(String userEmail) {
         email = userEmail;
-    }
-
-    public void setOperationController(String email, ClientApplication app, Client client) {
-        this.client = client;
-        this.email = email;
-        this.app = app;
-        this.selected_mail = null;
-
-        response = new SimpleStringProperty("");
-
-        response.bind(client.getResponse());
-        list_mail.itemsProperty().bind(client.getUserMailsProperty());
     }
 
     @FXML
@@ -62,7 +52,7 @@ public class ClientOperationController {
 
     @FXML
     public void handleReply() {
-        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        Mail selected_mail = list_mail.getSelectionModel().getSelectedItem();
         if (selected_mail != null) {
             String sender = getSenderFromMessage(selected_mail);
             if (sender != null) {
@@ -76,7 +66,7 @@ public class ClientOperationController {
 
     @FXML
     public void handleReplyAll() {
-        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        Mail selected_mail = list_mail.getSelectionModel().getSelectedItem();
         if (selected_mail != null) {
             List<String> recipients = getRecipientsFromMessage(selected_mail);
             if (!recipients.isEmpty()) {
@@ -89,19 +79,42 @@ public class ClientOperationController {
     }
 
     @FXML
+    private TextField destinatarioField; // Campo per inserire l'indirizzo email del destinatario
+
+    @FXML
     public void handleForward() {
-        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
-        if (selected_mail != null) {
+        // Ottieni la mail selezionata
+        Mail selectedMail = list_mail.getSelectionModel().getSelectedItem();
+
+        if (selectedMail != null) {
+            // Mostra il messaggio di forwarding
             mail_info.setText("Forwarding message...");
-            mail_text.setText("Forward this message to: \n\n" + selected_mail);
+
+            // Mostra il testo della mail che verrà inoltrata
+            mail_text.setText("Forward this message to: \n\n" + selectedMail);
+
+            // A questo punto possiamo chiedere all'utente di inserire un destinatario
+            String forwardTo = destinatarioField.getText(); // supponiamo che il campo del destinatario sia "destinatarioField"
+
+            // Verifica se l'email è valida
+            if (isValidEmail(forwardTo)) {
+                // Invia la mail o fai qualsiasi altro passo necessario per il forwarding
+                mail_info.setText("Message forwarded to: " + forwardTo);
+            } else {
+                // Mostra un errore se l'email non è valida
+                showError("Invalid email address.");
+            }
+
         } else {
+            // Mostra un errore se non è stata selezionata nessuna mail
             showError("No message selected to forward.");
         }
     }
 
+
     @FXML
     public void handleDelete() {
-        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        Mail selected_mail = list_mail.getSelectionModel().getSelectedItem();
         if (selected_mail != null) {
             list_mail.getItems().remove(selected_mail);
             mail_info.setText("Message deleted");
@@ -111,28 +124,55 @@ public class ClientOperationController {
         }
     }
 
-    private String getSenderFromMessage(String message) {
-        String[] parts = message.split(";");
+    private boolean isValidEmail(String email) {
+        // Verifica se l'email è sintatticamente corretta usando una regex
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
+    }
+
+
+    // Metodo per ottenere il mittente da un messaggio
+    private String getSenderFromMessage(Mail message) {
+        // Otteniamo il contenuto del messaggio come stringa
+        String messageContent = message.getMessage();
+
+        // Dividiamo il contenuto in base al punto e virgola
+        String[] parts = messageContent.split(";");
+
+        // Scorriamo le parti per cercare la riga che inizia con "From:"
         for (String part : parts) {
             if (part.trim().startsWith("From:")) {
+                // Restituiamo l'indirizzo del mittente, rimuovendo eventuali spazi
                 return part.split(":")[1].trim();
             }
         }
+        // Se non troviamo il mittente, restituiamo null
         return null;
     }
 
-    private List<String> getRecipientsFromMessage(String message) {
+    // Metodo per ottenere i destinatari da un messaggio
+    private List<String> getRecipientsFromMessage(Mail message) {
         List<String> recipients = new ArrayList<>();
-        String[] parts = message.split(";");
+
+        // Otteniamo il contenuto del messaggio come stringa
+        String messageContent = message.getMessage();
+
+        // Dividiamo il contenuto in base al punto e virgola
+        String[] parts = messageContent.split(";");
+
+        // Scorriamo le parti per cercare la riga che inizia con "To:"
         for (String part : parts) {
             if (part.trim().startsWith("To:")) {
+                // Estraiamo i destinatari dalla riga, separandoli per virgola e spazio
                 String recipientsString = part.split(":")[1].trim();
-                recipients.addAll(Arrays.asList(recipientsString.split(", ")));
+                recipients.addAll(Arrays.asList(recipientsString.split(",\\s*"))); // Utilizziamo regex per gestire spazi opzionali
                 break;
             }
         }
+
+        // Restituiamo la lista dei destinatari
         return recipients;
     }
+
 
     @FXML
     public void handleWrite() {
