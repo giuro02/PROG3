@@ -59,6 +59,10 @@ public class Server {
         return mailboxes.getOrDefault(userEmail, new ArrayList<>());
     }
 
+    public boolean isEmailRegistered(String email) {
+        return mailboxes.containsKey(email); // Controlla se l'email esiste nella mappa mailboxes
+    }
+
     public SimpleStringProperty getLogTableProperty() { return logTable; }
     public ObservableList<String> getUsersProperty() { return users; }
     public void updateLogTable(String message) { Platform.runLater(() -> logTable.set(logTable.get() + "\n" + message)); }

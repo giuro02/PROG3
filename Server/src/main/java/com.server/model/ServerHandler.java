@@ -34,7 +34,6 @@ public class ServerHandler {
         }
     }
 
-    //da verificare chat ha detto che è emglio di quello di sotto
     private static void handleClient(Socket clientSocket) {
         try (
                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
@@ -43,11 +42,24 @@ public class ServerHandler {
             String clientRequest = (String) in.readObject();
             server.updateLogTable("Richiesta ricevuta: " + clientRequest);
 
-            if ("SEND_MAIL".equals(clientRequest)) {
+            if ("LOGIN".equals(clientRequest)) {
+                // Leggi l'email e la password inviate dal client
+                String email = (String) in.readObject();
+                //String password = (String) in.readObject(); // Modifica il tipo di dati se la password è necessaria
+
+                // Verifica che l'email esista
+                if (!server.isEmailRegistered(email)) {
+                    out.writeObject("ERRORE: L'indirizzo email non esiste.");
+                } else {
+                    // Login riuscito
+                    out.writeObject("SUCCESSO: Login avvenuto con successo.");
+                }
+                out.flush();
+            } else if ("SEND_MAIL".equals(clientRequest)) {
                 // Leggi l'oggetto Mail dal client
                 Mail mail = (Mail) in.readObject();
 
-                // Invio dell'email tramite il metodo sendMail del Server
+                // Invio della mail tramite il metodo sendMail del Server
                 List<String> result = server.sendMail(mail);
 
                 // Rispondi al client in base al risultato dell'invio
@@ -60,23 +72,11 @@ public class ServerHandler {
             } else {
                 server.updateLogTable("Comando non riconosciuto: " + clientRequest);
             }
-
         } catch (IOException | ClassNotFoundException e) {
-            server.updateLogTable(" Errore nella gestione della richiesta: " + e.getMessage());
+            server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
         }
     }
 
-    /*private static void handleClient(Socket clientSocket) {
-        try (
-                ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-                ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())
-        ) {
-            String clientRequest = (String) in.readObject();
-            server.updateLogTable("Richiesta ricevuta: " + clientRequest);
-        } catch (IOException | ClassNotFoundException e) {
-            server.updateLogTable(" Errore nella gestione della richiesta: " + e.getMessage());
-        }
-    }*/
     public static void main(String[] args) {
         Server.getInstance(); // Inizializza il server
         System.out.println("Server avviato con successo!");

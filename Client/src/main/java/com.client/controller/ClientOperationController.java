@@ -1,51 +1,60 @@
 package com.client.controller;
 
+import com.client.ClientApplication;
+import com.client.model.Client;
+import com.common.Mail;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextArea;
-import javafx.scene.text.Text;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ClientOperationController {
 
     private static String email;
-    public Text emailInfoTitle;
-    public TextArea emailInfoTextArea;
 
     @FXML
-    private ListView<String> inboxListView;
+    private ListView<String> list_mail;
 
     @FXML
-    private Button replyButton;
+    private TextArea mail_text;
+
     @FXML
-    private Button replyAllButton;
+    private Label mail_info;
+
     @FXML
-    private Button forwardButton;
-    @FXML
-    private Button deleteButton;
+    private Button replyButton, deleteButton;
 
     public static void setEmail(String userEmail) {
         email = userEmail;
     }
 
-    //DA GESTIREEEEE
+    public void setOperationController(String email, ClientApplication app, Client client) {
+        this.client = client;
+        this.email = email;
+        this.app = app;
+        this.selected_mail = null;
+
+        response = new SimpleStringProperty("");
+
+        response.bind(client.getResponse());
+        list_mail.itemsProperty().bind(client.getUserMailsProperty());
+    }
+
     @FXML
-    public void onButtonClicked() {
-        // Logica per quando si clicca un elemento nella lista
-        String selectedMessage = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMessage != null) {
-            // Puoi fare qualcosa con il messaggio selezionato
-            emailInfoTitle.setText("Message: " + selectedMessage);
-            emailInfoTextArea.setText("Content of the message...");
+    public void handleButtonClick() {
+        Mail selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        if (selected_mail != null) {
+
+            mail_info.setText("Sending date: " + selected_mail.getDate());
+            mail_text.setText(selected_mail.getMessage());
         } else {
             showError("No message selected.");
         }
@@ -53,12 +62,12 @@ public class ClientOperationController {
 
     @FXML
     public void handleReply() {
-        String selectedMessage = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMessage != null) {
-            String sender = getSenderFromMessage(selectedMessage);
+        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        if (selected_mail != null) {
+            String sender = getSenderFromMessage(selected_mail);
             if (sender != null) {
-                emailInfoTitle.setText("Reply to: " + sender);
-                emailInfoTextArea.setText("Replying to " + sender + "\n\n" + "Type your response here...");
+                mail_info.setText("Reply to: " + sender);
+                mail_text.setText("Replying to " + sender + "\n\nType your response here...");
             } else {
                 showError("Sender information not found.");
             }
@@ -67,12 +76,12 @@ public class ClientOperationController {
 
     @FXML
     public void handleReplyAll() {
-        String selectedMessage = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMessage != null) {
-            List<String> recipients = getRecipientsFromMessage(selectedMessage);
+        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        if (selected_mail != null) {
+            List<String> recipients = getRecipientsFromMessage(selected_mail);
             if (!recipients.isEmpty()) {
-                emailInfoTitle.setText("Replying to all: " + String.join(", ", recipients));
-                emailInfoTextArea.setText("Replying to all recipients...\n\n" + "Type your response here...");
+                mail_info.setText("Replying to all: " + String.join(", ", recipients));
+                mail_text.setText("Replying to all recipients...\n\nType your response here...");
             } else {
                 showError("Recipients information not found.");
             }
@@ -81,10 +90,10 @@ public class ClientOperationController {
 
     @FXML
     public void handleForward() {
-        String selectedMessage = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMessage != null) {
-            emailInfoTitle.setText("Forwarding message...");
-            emailInfoTextArea.setText("Forward this message to: \n\n" + selectedMessage);
+        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        if (selected_mail != null) {
+            mail_info.setText("Forwarding message...");
+            mail_text.setText("Forward this message to: \n\n" + selected_mail);
         } else {
             showError("No message selected to forward.");
         }
@@ -92,11 +101,11 @@ public class ClientOperationController {
 
     @FXML
     public void handleDelete() {
-        String selectedMessage = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMessage != null) {
-            inboxListView.getItems().remove(selectedMessage);
-            emailInfoTitle.setText("Message deleted");
-            emailInfoTextArea.setText("The selected message has been deleted.");
+        String selected_mail = list_mail.getSelectionModel().getSelectedItem();
+        if (selected_mail != null) {
+            list_mail.getItems().remove(selected_mail);
+            mail_info.setText("Message deleted");
+            mail_text.setText("The selected message has been deleted.");
         } else {
             showError("No message selected to delete.");
         }
@@ -126,19 +135,12 @@ public class ClientOperationController {
     }
 
     @FXML
-    public void onWriteButtonClick() {
+    public void handleWrite() {
         try {
-            // Carica il file FXML per la nuova finestra
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/client/view/client-send.fxml"));
             Parent root = loader.load();
-
-            // Ottieni la scena corrente
             Stage stage = (Stage) replyButton.getScene().getWindow();
-
-            // Cambia la scena
             stage.setScene(new Scene(root));
-
-            // Mostra la nuova finestra
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
@@ -146,9 +148,8 @@ public class ClientOperationController {
         }
     }
 
-
     private void showError(String message) {
-        Alert alert = new Alert(AlertType.ERROR);
+        Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(message);

@@ -2,8 +2,9 @@ module com.server {
     requires java.base;
     requires javafx.controls;
     requires javafx.fxml;
-    requires com.common; // Assicura che il modulo `Common` sia richiesto
-    requires javafx.base;  // Aggiungi javafx.base
+    requires javafx.base;
+    requires javafx.graphics;
+    requires com.common;
 
     exports com.server;
     exports com.server.model;
