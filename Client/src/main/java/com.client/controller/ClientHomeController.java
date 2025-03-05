@@ -41,7 +41,7 @@ public class ClientHomeController {
 
                     // Carica la nuova schermata per le operazioni
                     try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("src/main/resources/client-operation.fxml"));
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/client/client-operation.fxml"));
                         Parent root = loader.load();
                         Scene scene = new Scene(root);
                         Stage stage = (Stage) emailTextField.getScene().getWindow();

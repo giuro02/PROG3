@@ -6,7 +6,7 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.client.controller.ClientOperationController">
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.client.controller.ClientOperationController">
 <children>
    <ListView fx:id="list_mail" layoutX="46.0" layoutY="73.0" onMouseClicked="#handleButtonClick" prefHeight="301.0" prefWidth="206.0" />
    <TextArea fx:id="mail_text" editable="false" layoutX="300.0" layoutY="76.0" prefHeight="301.0" prefWidth="270.0" wrapText="true" />
