@@ -3,13 +3,8 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.server.controller.ServerController">
-    <children>
-        <VBox spacing="10" alignment="CENTER">
-            <Label text="Log del Server" />
-            <TextArea fx:id="logArea" editable="false" wrapText="true" prefHeight="300" />
-            <Label text="Utenti Connessi" />
-            <ListView fx:id="userList" prefHeight="150" />
-        </VBox>
-    </children>
-</AnchorPane>
+<Pane id="mainPanel" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="685.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.server.controller.ServerController">
+    <TextArea fx:id="logArea" editable="false" layoutX="14.0" layoutY="14.0" prefHeight="370.0" prefWidth="385.0" />
+    <Label layoutX="427.0" layoutY="14.0" prefHeight="17.0" prefWidth="100.0" text="Users connected:" />
+    <ListView fx:id="userList" layoutX="427.0" layoutY="31.0" prefHeight="188.0" prefWidth="200.0" />
+</Pane>

@@ -1,6 +1,12 @@
 package com.server.model;
 
 import com.common.Mail;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -12,7 +18,11 @@ import java.util.*;
 /**
  * Gestisce le connessioni dei client.
  */
+
+
 public class ServerHandler {
+
+    private static TextField emailTextField;  // Campo per inserire l'indirizzo email
 
     private static final int PORT = 4000;
     private static final Server server = Server.getInstance();
@@ -45,7 +55,6 @@ public class ServerHandler {
             if ("LOGIN".equals(clientRequest)) {
                 // Leggi l'email e la password inviate dal client
                 String email = (String) in.readObject();
-                //String password = (String) in.readObject(); // Modifica il tipo di dati se la password è necessaria
 
                 // Verifica che l'email esista
                 if (!server.isEmailRegistered(email)) {
@@ -77,9 +86,18 @@ public class ServerHandler {
         }
     }
 
+    // Mostra un messaggio di errore
+    private static void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
     public static void main(String[] args) {
         Server.getInstance(); // Inizializza il server
         System.out.println("Server avviato con successo!");
+        startServer();
     }
 
 }

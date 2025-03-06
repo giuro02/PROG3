@@ -63,7 +63,7 @@ public class Client {
     public void authenticateUser() {
         boolean emailIsValid = false;
 
-        // Continuare a chiedere l'email finché non è valida
+        // Continua a chiedere l'email finché non è valida
         while (!emailIsValid) {
             userEmail = emailField.getText(); // Ottieni l'email inserita dall'utente
 
@@ -76,6 +76,9 @@ public class Client {
                 emailIsValid = true; // L'email è valida, possiamo procedere
             }
         }
+
+        // Connettersi al server prima di inviare l'autenticazione
+        connectToServer(); // Assicurati che la connessione venga stabilita
 
         try {
             // Invia la richiesta di autenticazione al server con l'email
@@ -94,6 +97,7 @@ public class Client {
             showError("Errore di comunicazione", "Errore durante la comunicazione con il server.");
         }
     }
+
 
 
     // Metodo per aggiornare la lista dei messaggi ricevuti (Inbox)

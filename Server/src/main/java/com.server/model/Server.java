@@ -6,6 +6,10 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 public class Server {
@@ -50,9 +54,24 @@ public class Server {
         return mailboxes.getOrDefault(userEmail, new ArrayList<>());
     }
 
+
     public boolean isEmailRegistered(String email) {
-        return mailboxes.containsKey(email); // Controlla se l'email esiste nella mappa mailboxes
+        try (BufferedReader reader = new BufferedReader(new FileReader("emails.csv"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().equals(email)) {
+                    return true;  // Se l'email è trovata nel file, restituisci true
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();  // Gestisci l'errore di lettura del file
+        }
+        return false;  // Se l'email non è trovata, restituisci false
     }
+
+    /*public boolean isEmailRegistered(String email) {
+        return mailboxes.containsKey(email); // Controlla se l'email esiste nella mappa mailboxes
+    }*/
 
     public SimpleStringProperty getLogTableProperty() { return logTable; }
     public ObservableList<String> getUsersProperty() { return users; }
