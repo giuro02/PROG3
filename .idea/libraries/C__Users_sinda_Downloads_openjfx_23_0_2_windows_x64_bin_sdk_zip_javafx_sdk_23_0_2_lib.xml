@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="javafx.base">
+  <library name="C:\Users\sinda\Downloads\openjfx-23.0.2_windows-x64_bin-sdk.zip\javafx-sdk-23.0.2\lib">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx.base.jar!/" />
       <root url="jar://$PROJECT_DIR$/../javafx-sdk-17.0.2 (1)/javafx-sdk-17.0.2/lib/javafx-swt.jar!/" />
