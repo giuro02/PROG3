@@ -1,7 +1,0 @@
-com\server\model\ServerHandler.class
-module-info.class
-com\server\model\CsvHandler.class
-com\server\ServerApplication.class
-com\server\controller\ServerController.class
-com\server\model\Server.class
-com\server\model\ServerException.class

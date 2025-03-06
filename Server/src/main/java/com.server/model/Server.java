@@ -15,13 +15,11 @@ public class Server {
     private final ObservableList<String> users;
 
     private Server() {
-        mailboxes = new HashMap<>();
+        mailboxes = CsvHandler.loadMailboxes();
         logTable = new SimpleStringProperty("");
         users = FXCollections.observableArrayList();
-        CsvHandler.loadMailboxes();
-        createDefaultAccounts();
-    }
 
+    }
     public static Server getInstance() {
         if (instance == null) {
             instance = new Server();
@@ -29,13 +27,6 @@ public class Server {
         return instance;
     }
 
-    private void createDefaultAccounts() {
-        String[] defaultUsers = {"senda@esame.it", "giulia@esame.it", "liliana@esame.it"};
-        for (String user : defaultUsers) {
-            mailboxes.putIfAbsent(user, new ArrayList<>());
-        }
-        CsvHandler.saveMailboxes(mailboxes);
-    }
 
     public synchronized List<String> sendMail(Mail mail) {
         if (!mailboxes.containsKey(mail.getSender())) {
