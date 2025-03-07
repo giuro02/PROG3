@@ -31,8 +31,10 @@ public class ServerHandler {
         server.updateLogTable(" Server avviato. In attesa di richieste...");
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("✅ Server started on port: " + PORT);
             while (true) {
                 try (Socket clientSocket = serverSocket.accept()) {
+
                     server.updateLogTable(" Nuovo client connesso: " + clientSocket.getInetAddress());
                     handleClient(clientSocket);
                 } catch (IOException e) {

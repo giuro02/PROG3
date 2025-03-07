@@ -25,47 +25,6 @@ public class ClientHomeController {
 
     // Metodo per gestire il login con l'indirizzo email
     @FXML
-    /*private void handleLogin() {
-        String email;
-
-        // Continuo a chiedere fino a quando l'email non è valida
-        while (true) {
-            email = emailTextField.getText();
-
-            // Verifica che l'email sia sintatticamente corretta
-            if (isValidEmail(email)) {
-                // Se l'email è valida, procedo con l'autenticazione
-                if (checkEmailExistenceOnServer(email)) {
-                    System.out.println("Autenticazione riuscita con l'email: " + email);
-                    ClientOperationController.setEmail(email);
-
-                    // Carica la nuova schermata per le operazioni
-                    try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/client/client-operation.fxml"));
-                        Parent root = loader.load();
-                        Scene scene = new Scene(root);
-                        Stage stage = (Stage) emailTextField.getScene().getWindow();
-                        stage.setScene(scene);
-                        stage.show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        showError("Errore", "Impossibile caricare la schermata successiva.");
-                    }
-                    break; // Esco dal ciclo perché l'email è valida e autenticata
-                } else {
-                    // Se l'email non esiste sul server
-                    showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
-                    emailTextField.clear();
-                    return; // Torna alla stessa schermata e aspetta un nuovo inserimento
-                }
-            } else {
-                // Mostra errore se l'email non è valida sintatticamente
-                showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
-                emailTextField.clear();
-                return; // Torna alla stessa schermata e aspetta un nuovo inserimento
-            }
-        }
-    }*/
 
     private void handleLogin() {
         String email;
@@ -85,7 +44,7 @@ public class ClientHomeController {
 
                     // Carica la nuova schermata per le operazioni
                     try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/client/client-operation.fxml"));
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
                         Parent root = loader.load();
                         Scene scene = new Scene(root);
                         Stage stage = (Stage) emailTextField.getScene().getWindow();

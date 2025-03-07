@@ -8,6 +8,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
@@ -54,20 +55,28 @@ public class Server {
         return mailboxes.getOrDefault(userEmail, new ArrayList<>());
     }
 
-
     public boolean isEmailRegistered(String email) {
-        try (BufferedReader reader = new BufferedReader(new FileReader("emails.csv"))) {
+        System.out.println("Checking email: " + email);
+        File file = new File("data.csv");
+        System.out.println("Looking for file at: " + file.getAbsolutePath());
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.trim().equals(email)) {
-                    return true;  // Se l'email è trovata nel file, restituisci true
+                System.out.println("Read line: [" + line + "]");
+                if (line.trim().equalsIgnoreCase(email.trim())) {
+                    System.out.println("Email FOUND: " + email);
+                    return true;
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();  // Gestisci l'errore di lettura del file
+            e.printStackTrace();
         }
-        return false;  // Se l'email non è trovata, restituisci false
+        System.out.println("Email NOT found: " + email);
+        return false;
     }
+
+
 
     /*public boolean isEmailRegistered(String email) {
         return mailboxes.containsKey(email); // Controlla se l'email esiste nella mappa mailboxes

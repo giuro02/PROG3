@@ -32,10 +32,14 @@ public class ClientOperationController {
     private Label mail_info;
 
     @FXML
-    private Button replyButton, deleteButton;
+    private Button replyButton, deleteButton, writeButton;
+
 
     public static void setEmail(String userEmail) {
         email = userEmail;
+    }
+    public static String getEmail() {
+        return email;
     }
 
     @FXML
@@ -177,7 +181,7 @@ public class ClientOperationController {
     @FXML
     public void handleWrite() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/client/view/client-send.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) replyButton.getScene().getWindow();
             stage.setScene(new Scene(root));

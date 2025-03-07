@@ -11,6 +11,7 @@ import java.util.*;
 public class CsvHandler {
     private static final String FILE_PATH = "/data.csv";
 
+
     /**
      * Carica le email dal file CSV e le restituisce come mappa utenti-email.
      * @return Mappa delle caselle di posta elettronica.
@@ -43,31 +44,24 @@ public class CsvHandler {
         Map<String, List<Mail>> mailboxes = new HashMap<>();
 
         try {
-            // First, try to load from an external file
-            File file = new File("resources/data.csv");
+            // Debug print to check working directory
+            System.out.println("Current working directory: " + new File(".").getAbsolutePath());
+            File file = new File(FILE_PATH);
 
             if (!file.exists()) {
-                // Try to load from classpath if the external file does not exist
-                InputStream in = CsvHandler.class.getResourceAsStream("/data.csv");
-                if (in == null) {
-                    System.out.println("Errore: file data.csv non trovato né nel percorso né nel classpath.");
-                    return mailboxes;
-                }
-                BufferedReader br = new BufferedReader(new InputStreamReader(in));
-                readFromBufferedReader(mailboxes, br);
+                System.out.println("Errore: file data.csv non trovato in " + file.getAbsolutePath());
+                return mailboxes;
             } else {
-                // Load from external file
                 BufferedReader br = new BufferedReader(new FileReader(file));
                 readFromBufferedReader(mailboxes, br);
             }
-
         } catch (IOException e) {
             System.out.println("Errore nel caricamento delle email: " + e.getMessage());
         }
         return mailboxes;
     }
 
-    // Helper method to read from a BufferedReader
+    // Helper method remains the same
     private static void readFromBufferedReader(Map<String, List<Mail>> mailboxes, BufferedReader br) throws IOException {
         String line;
         while ((line = br.readLine()) != null) {
@@ -85,6 +79,7 @@ public class CsvHandler {
             mailboxes.get(receiver).add(mail);
         }
     }
+
 
 
     /**
