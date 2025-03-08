@@ -54,7 +54,7 @@ public class ClientSendController {
         }
 
         // Retrieve the sender's email from ClientOperationController.
-        String sender = ClientOperationController.getEmail();
+        String sender = ClientOperationController.getUserEmail();
         if (sender == null || sender.trim().isEmpty()) {
             showError("Errore", "L'email del mittente non è disponibile.");
             return;
@@ -91,6 +91,13 @@ public class ClientSendController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
             Parent root = loader.load();
+
+            ClientOperationController controller = loader.getController();
+            // Se il controller ha un metodo setEmail(...) o setUserEmail(...), puoi passargli la mail dell'utente
+            controller.setUserEmail(sender);
+            // Aggiorna la inbox
+            controller.updateInbox();
+
             Stage stage = (Stage) sendButton.getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.show();

@@ -33,10 +33,11 @@ public class ServerHandler {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("✅ Server started on port: " + PORT);
             while (true) {
-                try (Socket clientSocket = serverSocket.accept()) {
-
+                try {
+                    Socket clientSocket = serverSocket.accept();
                     server.updateLogTable(" Nuovo client connesso: " + clientSocket.getInetAddress());
-                    handleClient(clientSocket);
+                    // Avvia un thread per gestire la connessione
+                    new Thread(() -> handleClient(clientSocket)).start();
                 } catch (IOException e) {
                     server.updateLogTable(" Errore con un client: " + e.getMessage());
                 }
@@ -55,30 +56,28 @@ public class ServerHandler {
             server.updateLogTable("Richiesta ricevuta: " + clientRequest);
 
             if ("LOGIN".equals(clientRequest)) {
-                // Leggi l'email e la password inviate dal client
                 String email = (String) in.readObject();
-
-                // Verifica che l'email esista
                 if (!server.isEmailRegistered(email)) {
                     out.writeObject("ERRORE: L'indirizzo email non esiste.");
                 } else {
-                    // Login riuscito
                     out.writeObject("SUCCESSO: Login avvenuto con successo.");
                 }
                 out.flush();
             } else if ("SEND_MAIL".equals(clientRequest)) {
-                // Leggi l'oggetto Mail dal client
                 Mail mail = (Mail) in.readObject();
-
-                // Invio della mail tramite il metodo sendMail del Server
                 List<String> result = server.sendMail(mail);
-
-                // Rispondi al client in base al risultato dell'invio
                 if (result.contains("SUCCESSO")) {
                     out.writeObject("SUCCESSO");
                 } else {
                     out.writeObject("ERRORE: Destinatari non validi: " + result);
                 }
+                out.flush();
+            }
+            // Aggiungi questo ramo per gestire il GET_INBOX
+            else if ("GET_INBOX".equals(clientRequest)) {
+                String userEmail = (String) in.readObject();
+                List<Mail> inbox = server.getInbox(userEmail);
+                out.writeObject(inbox);
                 out.flush();
             } else {
                 server.updateLogTable("Comando non riconosciuto: " + clientRequest);
@@ -87,6 +86,7 @@ public class ServerHandler {
             server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
         }
     }
+
 
     // Mostra un messaggio di errore
     private static void showError(String title, String message) {

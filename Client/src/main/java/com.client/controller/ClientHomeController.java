@@ -40,7 +40,7 @@ public class ClientHomeController {
 
                 if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
                     System.out.println("Autenticazione riuscita con l'email: " + email);
-                    ClientOperationController.setEmail(email);
+                    ClientOperationController.setUserEmail(email);
 
                     // Carica la nuova schermata per le operazioni
                     try {
@@ -95,31 +95,6 @@ public class ClientHomeController {
         return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
     }
 
-    // Metodo per verificare l'esistenza dell'email sul server
-    /*private boolean checkEmailExistenceOnServer(String email) {
-        try (Socket socket = new Socket("localhost", 4000);  // Connessione al server
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
-            // Invia la richiesta di login
-            out.writeObject("LOGIN");  // La richiesta è LOGIN
-            out.writeObject(email);    // Invia l'email
-            out.flush();
-
-            // Riceve la risposta dal server
-            String serverResponse = (String) in.readObject();
-
-            // Verifica la risposta
-            if (serverResponse.startsWith("SUCCESSO")) {
-                return true;  // Login riuscito
-            } else if (serverResponse.startsWith("ERRORE")) {
-                return false;  // Email non trovata
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }*/
 
 
     // Mostra un messaggio di errore

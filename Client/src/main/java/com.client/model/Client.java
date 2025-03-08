@@ -52,11 +52,9 @@ public class Client {
         }
     }
 
-    // Verifica della sintassi dell'indirizzo email
-    public boolean isValidEmail(String email) {
-        String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
-        Pattern pattern = Pattern.compile(emailRegex); //NON USIAMO IL PATTERN SEMBRA TROPPO COPIATOOOOO
-        return pattern.matcher(email).matches(); //LEVAAAAAAAA
+    private boolean isValidEmail(String email) {
+        // Verifica se l'email è sintatticamente corretta usando una regex
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
     }
 
     // Metodo per l'autenticazione e la connessione con il server
