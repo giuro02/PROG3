@@ -28,37 +28,49 @@ public class ClientHomeController {
 
     @FXML
     private void handleLogin() {
-        String email = emailTextField.getText();
-        if (!isValidEmail(email)) {
-            showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
-            return;
-        }
+        String email;
 
-        String response = sendLoginRequestToServer(email);
-        if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
-            System.out.println("Autenticazione riuscita con l'email: " + email);
+        while (true) {
+            email = emailTextField.getText();
 
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
-                Parent root = loader.load();
+            if (isValidEmail(email)) {
+                String response = sendLoginRequestToServer(email);
 
-                ClientOperationController controller = loader.getController();
-                controller.setUserEmail(email);  // Ensure email is set before showing screen
-                controller.updateInbox();        // Fetch inbox immediately
+                if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
+                    System.out.println("Autenticazione riuscita con l'email: " + email);
+                    ClientOperationController.setUserEmail(email);
 
-                Scene scene = new Scene(root);
-                Stage stage = (Stage) emailTextField.getScene().getWindow();
-                stage.setScene(scene);
-                stage.show();
-            } catch (IOException e) {
-                e.printStackTrace();
-                showError("Errore", "Impossibile caricare la schermata successiva.");
+                    // Load the new scene for the operations
+                    try {
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
+                        Parent root = loader.load();
+
+                        // 1) Get the current stage
+                        Stage stage = (Stage) emailTextField.getScene().getWindow();
+                        // 2) Set the window title with the user’s email
+                        stage.setTitle("Mail Client - " + email);
+
+                        Scene scene = new Scene(root);
+                        stage.setScene(scene);
+                        stage.show();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        showError("Errore", "Impossibile caricare la schermata successiva.");
+                    }
+                    break;
+                } else {
+                    showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
+                    emailTextField.clear();
+                    return;
+                }
+            } else {
+                showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
+                emailTextField.clear();
+                return;
             }
-        } else {
-            showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
-            emailTextField.clear();
         }
     }
+
 
 
     private String sendLoginRequestToServer(String email) {

@@ -37,13 +37,11 @@ public class ClientSendController {
 
     @FXML
     private TextArea bodyTextField;
-
-    @FXML
     public void handleSend() {
         System.out.println("DEBUG: handleSend() called");
 
         // Retrieve the values from the text fields.
-        String recipientLine = recipientTextField.getText();  // e.g. "alice@ex.com, bob@ex.com"
+        String recipientLine = recipientTextField.getText();  // e.g., "alice@ex.com; bob@ex.com"
         String subject = subjectTextField.getText();
         String body = bodyTextField.getText();
 
@@ -52,9 +50,8 @@ public class ClientSendController {
             return;
         }
 
-        // Split on commas to get multiple recipients
-        String[] recipientsArray = recipientLine.split(",");
-        // Convert to a List<String>, trimming whitespace
+        // Split on comma or semicolon (with optional spaces) to support multiple recipients.
+        String[] recipientsArray = recipientLine.split("\\s*[;,]\\s*");
         List<String> recipients = new ArrayList<>();
         for (String r : recipientsArray) {
             String trimmed = r.trim();
@@ -72,9 +69,9 @@ public class ClientSendController {
             return;
         }
 
-        // Create a Mail object using the input values.
-        // If you have an 'id' in Mail, generate a random or unique ID:
+        // Generate a unique ID for the email.
         int generatedId = new java.util.Random().nextInt(100000);
+        // Create a Mail object using the input values.
         Mail mail = new Mail(generatedId, subject, sender, new ArrayList<>(recipients), body, new Date());
 
         // Send the email to the server over a socket.
@@ -99,7 +96,7 @@ public class ClientSendController {
             return;
         }
 
-        // After successfully sending the email, switch back to the operations interface.
+        // After sending the email successfully, switch back to the operations interface.
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
             Parent root = loader.load();
@@ -117,6 +114,7 @@ public class ClientSendController {
             showError("Errore", "Impossibile caricare l'interfaccia operativa.");
         }
     }
+
 
     public void prefillFields(String recipients, String subject, String body) {
         recipientTextField.setText(recipients);
