@@ -24,51 +24,42 @@ public class ClientHomeController {
     //private Button loginButton;  // Bottone per inviare l'indirizzo email e autenticarsi
 
     // Metodo per gestire il login con l'indirizzo email
+
+
     @FXML
-
     private void handleLogin() {
-        String email;
+        String email = emailTextField.getText();
+        if (!isValidEmail(email)) {
+            showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
+            return;
+        }
 
-        // Continuo a chiedere fino a quando l'email non è valida
-        while (true) {
-            email = emailTextField.getText();
+        String response = sendLoginRequestToServer(email);
+        if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
+            System.out.println("Autenticazione riuscita con l'email: " + email);
 
-            // Verifica che l'email sia sintatticamente corretta
-            if (isValidEmail(email)) {
-                // Se l'email è valida, procedo con l'autenticazione
-                String response = sendLoginRequestToServer(email);
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
+                Parent root = loader.load();
 
-                if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
-                    System.out.println("Autenticazione riuscita con l'email: " + email);
-                    ClientOperationController.setUserEmail(email);
+                ClientOperationController controller = loader.getController();
+                controller.setUserEmail(email);  // Ensure email is set before showing screen
+                controller.updateInbox();        // Fetch inbox immediately
 
-                    // Carica la nuova schermata per le operazioni
-                    try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
-                        Parent root = loader.load();
-                        Scene scene = new Scene(root);
-                        Stage stage = (Stage) emailTextField.getScene().getWindow();
-                        stage.setScene(scene);
-                        stage.show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        showError("Errore", "Impossibile caricare la schermata successiva.");
-                    }
-                    break; // Esco dal ciclo perché l'email è valida e autenticata
-                } else {
-                    // Se l'email non è stata trovata sul server
-                    showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
-                    emailTextField.clear();
-                    return; // Torna alla stessa schermata e aspetta un nuovo inserimento
-                }
-            } else {
-                // Mostra errore se l'email non è valida sintatticamente
-                showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
-                emailTextField.clear();
-                return; // Torna alla stessa schermata e aspetta un nuovo inserimento
+                Scene scene = new Scene(root);
+                Stage stage = (Stage) emailTextField.getScene().getWindow();
+                stage.setScene(scene);
+                stage.show();
+            } catch (IOException e) {
+                e.printStackTrace();
+                showError("Errore", "Impossibile caricare la schermata successiva.");
             }
+        } else {
+            showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
+            emailTextField.clear();
         }
     }
+
 
     private String sendLoginRequestToServer(String email) {
         try (Socket socket = new Socket("localhost", 4000);

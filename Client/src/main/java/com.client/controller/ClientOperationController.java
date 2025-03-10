@@ -1,6 +1,7 @@
 package com.client.controller;
 
 import com.common.Mail;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -46,6 +47,19 @@ public class ClientOperationController {
     public static String getUserEmail() {
         return userEmail;
     }
+        //Platform.runLater() ensures that the GUI thread has fully loaded before calling updateInbox().
+        //This avoids timing issues where userEmail might not be set when initialize() runs.
+        @FXML
+        public void initialize() {
+            Platform.runLater(() -> {
+                if (userEmail == null || userEmail.isEmpty()) {
+                    userEmail = getUserEmail();  // Ensure email is set
+                }
+                if (userEmail != null && !userEmail.isEmpty()) {
+                    updateInbox();  // Fetch inbox immediately
+                }
+            });
+        }
 
     public void updateInbox() {
         try (Socket socket = new Socket("localhost", 4000);
@@ -58,12 +72,15 @@ public class ClientOperationController {
 
             List<Mail> newInbox = (List<Mail>) in.readObject();
 
-            inboxListView.getItems().clear();
-            inboxListView.getItems().addAll(newInbox);
+            Platform.runLater(() -> {
+                inboxListView.getItems().setAll(newInbox);  // Instead of clear() + addAll()
+            });
+
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
+
 
     @FXML
     public void handleButtonClick() {
@@ -124,14 +141,39 @@ public class ClientOperationController {
     @FXML
     public void handleDelete() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMail != null) {
-            inboxListView.getItems().remove(selectedMail);
-            mail_info.setText("Message deleted");
-            mail_text.setText("The selected message has been deleted.");
-        } else {
+        if (selectedMail == null) {
             showError("No message selected to delete.");
+            return;
+        }
+
+        System.out.println("DEBUG: Attempting to delete mail: " + selectedMail);
+
+        try (Socket socket = new Socket("localhost", 4000);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("DELETE_MAIL");
+            out.writeObject(ClientOperationController.getUserEmail());  // Send user email
+            out.writeObject(selectedMail);  // Send mail to delete
+            out.flush();
+
+            String response = (String) in.readObject();
+            if ("SUCCESSO".equals(response)) {
+                inboxListView.getItems().remove(selectedMail);  // Remove from UI
+                updateInbox();  // Refresh from server
+                System.out.println("DEBUG: Successfully deleted from UI and server.");
+            } else {
+                showError("Failed to delete email.");
+                System.out.println("DEBUG: Server responded with error: " + response);
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            showError("Error deleting email.");
         }
     }
+
+
+
 
     private boolean isValidEmail(String email) {
         return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");

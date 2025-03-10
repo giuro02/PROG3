@@ -188,6 +188,35 @@ public class Server {
     public boolean isEmailRegistered(String email) {
         return accounts.contains(email);
     }
+    public synchronized boolean deleteMail(String userEmail, Mail mailToDelete) {
+        if (!mailboxes.containsKey(userEmail)) {
+            System.out.println("DEBUG:  User inbox not found for " + userEmail);
+            return false;
+        }
+
+        List<Mail> userInbox = mailboxes.get(userEmail);
+
+        System.out.println("DEBUG: Trying to delete email: " + mailToDelete);
+        System.out.println("DEBUG: Current inbox before deletion: " + userInbox);
+
+        boolean removed = userInbox.removeIf(mail -> {
+            boolean isEqual = mail.equals(mailToDelete);
+            System.out.println("DEBUG: Comparing with stored email: " + mail + " -> Match: " + isEqual);
+            return isEqual;
+        });
+
+        if (removed) {
+            CsvHandler.saveMailboxes(mailboxes, "emails.csv");  // Ensure file is updated
+            updateLogTable("Email deleted for user: " + userEmail);
+            System.out.println("DEBUG:  Email deleted successfully!");
+        } else {
+            updateLogTable("Failed to delete email for user: " + userEmail);
+            System.out.println("DEBUG:  Email deletion failed. Check if fields match!");
+        }
+
+        System.out.println("DEBUG: Inbox after deletion: " + userInbox);
+        return removed;
+    }
 
     // Getter e metodi di log/utenti
 

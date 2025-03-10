@@ -1,49 +1,59 @@
 package com.server.model;
 
 import com.common.Mail;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.control.TextField;
-import javafx.stage.Stage;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Gestisce le connessioni dei client.
  */
-
-
 public class ServerHandler {
 
-    private static TextField emailTextField;  // Campo per inserire l'indirizzo email
-
     private static final int PORT = 4000;
+    private static ServerSocket serverSocket;
     private static final Server server = Server.getInstance();
+    private static boolean running = true; // Flag to stop server
+    private static final ExecutorService threadPool = Executors.newCachedThreadPool(); // Manages client connections
 
     public static void startServer() {
-        server.updateLogTable(" Server avviato. In attesa di richieste...");
+        try {
+            serverSocket = new ServerSocket(PORT);
+            serverSocket.setReuseAddress(true);  // Important to allow reusing the port after closing
+            server.updateLogTable(" Server started on port: " + PORT);
 
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("✅ Server started on port: " + PORT);
-            while (true) {
+            while (running) {
                 try {
                     Socket clientSocket = serverSocket.accept();
                     server.updateLogTable(" Nuovo client connesso: " + clientSocket.getInetAddress());
-                    // Avvia un thread per gestire la connessione
-                    new Thread(() -> handleClient(clientSocket)).start();
+
+                    // Start handling client in a separate thread
+                    threadPool.execute(() -> handleClient(clientSocket));
                 } catch (IOException e) {
+                    if (!running) break; // Exit loop when stopping server
                     server.updateLogTable(" Errore con un client: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
             server.updateLogTable(" Errore nell'avvio del server: " + e.getMessage());
+        }
+    }
+
+    public static void stopServer() {
+        running = false;  // Set flag to stop the server
+
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close(); // Close the ServerSocket
+            }
+            threadPool.shutdown(); // Stop accepting new connections
+            server.updateLogTable(" Server stopped.");
+        } catch (IOException e) {
+            server.updateLogTable("⚠ Errore durante la chiusura del server: " + e.getMessage());
         }
     }
 
@@ -73,33 +83,30 @@ public class ServerHandler {
                 }
                 out.flush();
             }
-            // Aggiungi questo ramo per gestire il GET_INBOX
+            // Get inbox request
             else if ("GET_INBOX".equals(clientRequest)) {
                 String userEmail = (String) in.readObject();
                 List<Mail> inbox = server.getInbox(userEmail);
                 out.writeObject(inbox);
                 out.flush();
             } else {
-                server.updateLogTable("Comando non riconosciuto: " + clientRequest);
+                server.updateLogTable(" Comando non riconosciuto: " + clientRequest);
             }
+             if ("DELETE_MAIL".equals(clientRequest)) {
+                String userEmail = (String) in.readObject();  // Read user email
+                Mail mailToDelete = (Mail) in.readObject();  // Read the mail object to delete
+
+                boolean success = server.deleteMail(userEmail, mailToDelete);
+                if (success) {
+                    out.writeObject("SUCCESSO");
+                } else {
+                    out.writeObject("ERRORE: Email not found or deletion failed.");
+                }
+                out.flush();
+            }
+
         } catch (IOException | ClassNotFoundException e) {
-            server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
+            server.updateLogTable(" Errore nella gestione della richiesta: " + e.getMessage());
         }
     }
-
-
-    // Mostra un messaggio di errore
-    private static void showError(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    public static void main(String[] args) {
-        Server.getInstance(); // Inizializza il server
-        System.out.println("Server avviato con successo!");
-        startServer();
-    }
-
 }

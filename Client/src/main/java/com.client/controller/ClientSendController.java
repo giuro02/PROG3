@@ -61,7 +61,15 @@ public class ClientSendController {
         }
 
         // Create a Mail object using the input values.
-        Mail mail = new Mail(0, subject, sender, new ArrayList<>(List.of(recipient)), body, new Date());
+        Mail mail = new Mail(
+                new Random().nextInt(100000),  // Generates a unique random ID
+                subject,
+                sender,
+                new ArrayList<>(List.of(recipient)),
+                body,
+                new Date()
+        );
+
 
         // Send the email to the server over a socket.
         try (Socket socket = new Socket("localhost", 4000);
@@ -113,14 +121,21 @@ public class ClientSendController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
             Parent root = loader.load();
+
+            ClientOperationController controller = loader.getController();
+            controller.setUserEmail(ClientOperationController.getUserEmail());  // Ensure email is set
+            controller.updateInbox();  // Refresh inbox when coming back
+
             Stage stage = (Stage) backButton.getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
-            showError("Errore di caricamento", "Impossibile tornare alla schermata principale.");
+            showError("Errore", "Impossibile caricare l'interfaccia operativa.");
         }
     }
+
+
 
     private boolean isValidEmail(String email) {
         // Verifica se l'email è sintatticamente corretta usando una regex
