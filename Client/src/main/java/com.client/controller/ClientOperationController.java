@@ -87,7 +87,22 @@ public class ClientOperationController {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
         if (selectedMail != null) {
             mail_info.setText("Sending date: " + selectedMail.getDate());
-            mail_text.setText(selectedMail.getMessage());
+
+            // The actual stored body
+            String actualBody = selectedMail.getMessage();
+
+            // If the subject starts with "Fwd:",
+            // we dynamically prepend "FORWARDED MESSAGE:\n\n"
+            // just for display:
+            String displayedBody = actualBody;
+            if (selectedMail.getTitle() != null
+                    && selectedMail.getTitle().toLowerCase().startsWith("fwd:"))
+            {
+                displayedBody = "FORWARDED MESSAGE:\n\n" + displayedBody;
+            }
+
+            // Now show it in the detail area
+            mail_text.setText(displayedBody);
         } else {
             showError("No message selected.");
         }
@@ -120,23 +135,61 @@ public class ClientOperationController {
             }
         }
     }
-
     @FXML
     public void handleForward() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMail != null) {
-            mail_info.setText("Forwarding message...");
-            mail_text.setText("Forward this message to: \n\n" + selectedMail);
-            String forwardTo = destinatarioField.getText();
-            if (isValidEmail(forwardTo)) {
-                mail_info.setText("Message forwarded to: " + forwardTo);
-            } else {
-                showError("Invalid email address.");
-            }
-        } else {
+        if (selectedMail == null) {
             showError("No message selected to forward.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+
+            ClientSendController sendController = loader.getController();
+
+            // Original subject & body
+            String originalSubject = selectedMail.getTitle();
+            String originalBody    = selectedMail.getMessage();
+
+            // Add "Fwd:" only if not present
+            String newSubject = ensureForwardPrefix(originalSubject);
+
+            // For the body we do NOT add "FORWARDED MESSAGE" (store it plain):
+            // This means the actual stored email body remains "impossibile" (for example).
+            String newBody = originalBody;
+
+            // Fill the fields in the SendController
+            sendController.prefillFields(/* recipients */ "",
+                    /* subject    */ newSubject,
+                    /* body       */ newBody);
+
+            Stage stage = (Stage) replyButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
         }
     }
+
+    /**
+     * Utility: if the subject is "MySubject", returns "Fwd: MySubject".
+     * If it already starts with "Fwd:", leaves it alone.
+     */
+    private String ensureForwardPrefix(String subject) {
+        if (subject == null) subject = "";
+        subject = subject.trim();
+        if (subject.toLowerCase().startsWith("fwd:")) {
+            return subject;
+        } else {
+            return "Fwd: " + subject;
+        }
+    }
+
+
 
     @FXML
     public void handleDelete() {
@@ -161,6 +214,8 @@ public class ClientOperationController {
             if ("SUCCESSO".equals(response)) {
                 inboxListView.getItems().remove(selectedMail);  // Remove from UI
                 updateInbox();  // Refresh from server
+                mail_text.setText("");
+                mail_info.setText("");
                 System.out.println("DEBUG: Successfully deleted from UI and server.");
             } else {
                 showError("Failed to delete email.");

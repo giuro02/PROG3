@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.scene.Parent;
@@ -35,22 +36,33 @@ public class ClientSendController {
     private TextField subjectTextField;
 
     @FXML
-    private TextField bodyTextField;
+    private TextArea bodyTextField;
 
     @FXML
     public void handleSend() {
         System.out.println("DEBUG: handleSend() called");
 
         // Retrieve the values from the text fields.
-        String recipient = recipientTextField.getText();
+        String recipientLine = recipientTextField.getText();  // e.g. "alice@ex.com, bob@ex.com"
         String subject = subjectTextField.getText();
         String body = bodyTextField.getText();
 
-        System.out.println("DEBUG: recipientTextField = [" + recipient + "]");
-// Validate the recipient email.
-        if (!isValidEmail(recipient)) {
-            showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
+        if (recipientLine == null || recipientLine.trim().isEmpty()) {
+            showError("Email non valida", "Per favore, inserisci almeno un indirizzo email valido.");
             return;
+        }
+
+        // Split on commas to get multiple recipients
+        String[] recipientsArray = recipientLine.split(",");
+        // Convert to a List<String>, trimming whitespace
+        List<String> recipients = new ArrayList<>();
+        for (String r : recipientsArray) {
+            String trimmed = r.trim();
+            if (!isValidEmail(trimmed)) {
+                showError("Email non valida", "Indirizzo non valido: " + trimmed);
+                return;
+            }
+            recipients.add(trimmed);
         }
 
         // Retrieve the sender's email from ClientOperationController.
@@ -61,24 +73,16 @@ public class ClientSendController {
         }
 
         // Create a Mail object using the input values.
-        Mail mail = new Mail(
-                new Random().nextInt(100000),  // Generates a unique random ID
-                subject,
-                sender,
-                new ArrayList<>(List.of(recipient)),
-                body,
-                new Date()
-        );
-
+        // If you have an 'id' in Mail, generate a random or unique ID:
+        int generatedId = new java.util.Random().nextInt(100000);
+        Mail mail = new Mail(generatedId, subject, sender, new ArrayList<>(recipients), body, new Date());
 
         // Send the email to the server over a socket.
         try (Socket socket = new Socket("localhost", 4000);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
-            // Send a command to the server indicating we want to send an email.
             out.writeObject("SEND_MAIL");
-            // Send the Mail object.
             out.writeObject(mail);
             out.flush();
 
@@ -101,9 +105,8 @@ public class ClientSendController {
             Parent root = loader.load();
 
             ClientOperationController controller = loader.getController();
-            // Se il controller ha un metodo setEmail(...) o setUserEmail(...), puoi passargli la mail dell'utente
+            // Pass the userEmail again if needed
             controller.setUserEmail(sender);
-            // Aggiorna la inbox
             controller.updateInbox();
 
             Stage stage = (Stage) sendButton.getScene().getWindow();
@@ -115,6 +118,11 @@ public class ClientSendController {
         }
     }
 
+    public void prefillFields(String recipients, String subject, String body) {
+        recipientTextField.setText(recipients);
+        subjectTextField.setText(subject);
+        bodyTextField.setText(body);
+    }
 
     @FXML
     public void handleBack() {
