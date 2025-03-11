@@ -262,7 +262,7 @@ public class ClientOperationController {
             // but keep the stored body unchanged.
             sendController.prefillFields("", newSubject, newBody);
 
-            Stage stage = (Stage) writeButton.getScene().getWindow();
+            Stage stage = (Stage) replyButton.getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.show();
         } catch (IOException e) {

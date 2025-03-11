@@ -19,28 +19,20 @@ public class ServerHandler {
     public static void startServer() {
         try {
             serverSocket = new ServerSocket(PORT);
-            serverSocket.setReuseAddress(true);  // Allow reusing the port after closing
-            server.updateLogTable("Server started on port: " + PORT);
+            serverSocket.setReuseAddress(true);  // Important to allow reusing the port after closing
+            server.updateLogTable(" Server started on port: " + PORT);
 
             while (running) {
                 try {
                     Socket clientSocket = serverSocket.accept();
-                    if (clientSocket != null && !clientSocket.isClosed()) {
-                        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                        if (in.ready()) { // Check if client actually sent data
-                            server.updateLogTable("Nuovo client connesso: " + clientSocket.getInetAddress());
-                            threadPool.execute(() -> handleClient(clientSocket));
-                        } else {
-                            clientSocket.close(); // Close empty connections
-                        }
-                    }
+                    threadPool.execute(() -> handleClient(clientSocket));
                 } catch (IOException e) {
                     if (!running) break; // Exit loop when stopping server
-                    server.updateLogTable("Errore con un client: " + e.getMessage());
+                    server.updateLogTable("❌ Errore con un client: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
-            server.updateLogTable("Errore nell'avvio del server: " + e.getMessage());
+            server.updateLogTable(" Errore nell'avvio del server: " + e.getMessage());
         }
     }
 
@@ -52,9 +44,9 @@ public class ServerHandler {
                 serverSocket.close(); // Close the ServerSocket
             }
             threadPool.shutdown(); // Stop accepting new connections
-            server.updateLogTable("Server stopped.");
+            server.updateLogTable(" Server stopped.");
         } catch (IOException e) {
-            server.updateLogTable("Errore durante la chiusura del server: " + e.getMessage());
+            server.updateLogTable("⚠ Errore durante la chiusura del server: " + e.getMessage());
         }
     }
 
@@ -67,13 +59,13 @@ public class ServerHandler {
 
             if ("LOGIN".equals(clientRequest)) {
                 String email = (String) in.readObject();
-                server.updateLogTable("Login richiesto da: " + email);
+                server.updateLogTable("Tentativo di login da: " + email);
                 if (!server.isEmailRegistered(email)) {
                     out.writeObject("ERRORE: L'indirizzo email non esiste.");
-                    server.updateLogTable("ERRORE: L'indirizzo email " + email + " non esiste.");
+                    server.updateLogTable("❌ Errore: L'email " + email + " non esiste.");
                 } else {
                     out.writeObject("SUCCESSO: Login avvenuto con successo.");
-                    server.updateLogTable("Login riuscito per: " + email);
+                    server.updateLogTable("✅ Login riuscito per: " + email);
                 }
                 out.flush();
             } else if ("GET_INBOX".equals(clientRequest)) {
@@ -87,10 +79,10 @@ public class ServerHandler {
 
                 if (invalidRecipients.isEmpty()) {
                     out.writeObject("SUCCESSO");
-                    server.updateLogTable("Nuova email inviata da " + mail.getSender() + " a: " + String.join(", ", mail.getReceiver()));
+                    server.updateLogTable("📩 Email inviata da " + mail.getSender() + " a: " + String.join(", ", mail.getReceiver()));
                 } else {
                     out.writeObject("ERRORE: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste");
-                    server.updateLogTable("Errore: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste");
+                    server.updateLogTable("⚠ Errore nell'invio: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste");
                 }
                 out.flush();
             } else if ("DELETE_MAIL".equals(clientRequest)) {
