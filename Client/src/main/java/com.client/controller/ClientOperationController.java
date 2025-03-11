@@ -34,7 +34,7 @@ public class ClientOperationController {
     private Label mail_info;
 
     @FXML
-    private Button replyButton, deleteButton, writeButton;
+    private Button replyButton, replyAllButton, deleteButton, writeButton;
 
     @FXML
     private TextField destinatarioField;
@@ -111,30 +111,106 @@ public class ClientOperationController {
     @FXML
     public void handleReply() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMail != null) {
-            String sender = getSenderFromMessage(selectedMail);
-            if (sender != null) {
-                mail_info.setText("Reply to: " + sender);
-                mail_text.setText("Replying to " + sender + "\n\nType your response here...");
-            } else {
-                showError("Sender information not found.");
-            }
+        if (selectedMail == null) {
+            showError("No message selected to reply.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+
+            ClientSendController sendController = loader.getController();
+
+            // Get the original sender's email address
+            String senderEmail = selectedMail.getSender();
+
+            // Original subject
+            String originalSubject = selectedMail.getTitle();
+
+            // Create the new subject by prepending "Re:" to the original subject
+            String newSubject = ensureReplyPrefix(originalSubject);
+
+            // Leave the body empty for the user to type their response
+            String newBody = "";
+
+            // Fill the fields in the SendController
+            sendController.prefillFields(senderEmail, newSubject, newBody);
+
+            // Switch to the Send email scene
+            Stage stage = (Stage) replyButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
         }
     }
 
+    /**
+     * Utility: if the subject is "MySubject", returns "Re: MySubject".
+     * If it already starts with "Re:", leaves it alone.
+     */
+    private String ensureReplyPrefix(String subject) {
+        if (subject == null) subject = "";
+        subject = subject.trim();
+        if (subject.toLowerCase().startsWith("re:")) {
+            return subject;
+        } else {
+            return "Re: " + subject;
+        }
+    }
+
+
+    //@FXML
     @FXML
     public void handleReplyAll() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMail != null) {
-            List<String> recipients = getRecipientsFromMessage(selectedMail);
-            if (!recipients.isEmpty()) {
-                mail_info.setText("Replying to all: " + String.join(", ", recipients));
-                mail_text.setText("Replying to all recipients...\n\nType your response here...");
-            } else {
-                showError("Recipients information not found.");
-            }
+        if (selectedMail == null) {
+            showError("No message selected to reply to all.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+
+            ClientSendController sendController = loader.getController();
+
+            // Get the original sender's email address
+            String senderEmail = selectedMail.getSender();
+
+            // Get all recipients (including the original sender)
+            List<String> allRecipients = new ArrayList<>(selectedMail.getReceiver());
+            allRecipients.add(senderEmail);
+
+            // Remove the sender's email from the list of recipients to avoid replying to oneself
+            String userEmail = ClientOperationController.getUserEmail();
+            allRecipients.remove(userEmail);  // Remove the current user's email if it's in the list
+
+            // Create the new subject by prepending "Re:" to the original subject
+            String originalSubject = selectedMail.getTitle();
+            String newSubject = ensureReplyPrefix(originalSubject);
+
+            // Leave the body empty for the user to type their response
+            String newBody = "";
+
+            // Fill the fields in the SendController
+            sendController.prefillFields(String.join(", ", allRecipients), newSubject, newBody);
+
+            // Switch to the Send email scene
+            Stage stage = (Stage) replyAllButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
         }
     }
+
+
     @FXML
     public void handleForward() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
@@ -227,7 +303,49 @@ public class ClientOperationController {
         }
     }
 
+    void startAutoRefresh() {
+        Thread refreshThread = new Thread(() -> {
+            while (true) {
+                try {
+                    String nuoviMessaggi = controllaNuoviMessaggi();
 
+                    if (nuoviMessaggi != null && !nuoviMessaggi.isEmpty()) {
+                        Platform.runLater(() -> {
+                            mostraNotifica("Nuovi messaggi ricevuti!");
+                        });
+                    }
+
+                    Thread.sleep(5000); // Controlla ogni 5 secondi
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        refreshThread.setDaemon(true);
+        refreshThread.start();
+    }
+
+    private String controllaNuoviMessaggi() {
+        try (Socket socket = new Socket("localhost", 4000);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("GET_NEW_MESSAGES");
+            out.writeObject(ClientOperationController.getUserEmail()); // Usa l'email dell'utente
+            out.flush();
+
+            return (String) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void mostraNotifica(String messaggio) {
+        System.out.println("Notifica: " + messaggio);
+        // Qui puoi usare una finestra di dialogo, icona di sistema, ecc.
+    }
 
 
     private boolean isValidEmail(String email) {

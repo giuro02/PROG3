@@ -12,9 +12,9 @@
    <TextArea fx:id="mail_text" editable="false" layoutX="300.0" layoutY="76.0" prefHeight="301.0" prefWidth="270.0" wrapText="true" />
    <Label fx:id="mail_info" layoutX="300.0" layoutY="52.0" prefHeight="26.0" prefWidth="270.0" text="Email details:" />
    <Button layoutX="46.0" layoutY="30.0" mnemonicParsing="false" onMouseClicked="#handleWrite" prefHeight="25.0" prefWidth="96.0" text="Write" />
-   <Button fx:id="replyButton" layoutX="367.0" layoutY="17.0" mnemonicParsing="false" onMouseClicked="#handleReply" prefHeight="26.0" prefWidth="62.0" text="Reply all" />
+   <Button fx:id="replyButton" layoutX="367.0" layoutY="17.0" mnemonicParsing="false" onMouseClicked="#handleReplyAll" prefHeight="26.0" prefWidth="62.0" text="Reply all" />
    <Button fx:id="deleteButton" layoutX="515.0" layoutY="17.0" mnemonicParsing="false" onMouseClicked="#handleDelete" prefHeight="26.0" prefWidth="56.0" text="Delete" />
-   <Button id="reply-all" layoutX="300.0" layoutY="17.0" mnemonicParsing="false" onMouseClicked="#handleReplyAll" prefHeight="26.0" prefWidth="56.0" text="Reply" />
+   <Button fx:id="replyAllButton" layoutX="300.0" layoutY="17.0" mnemonicParsing="false" onMouseClicked="#handleReply" prefHeight="26.0" prefWidth="56.0" text="Reply" />
    <Button id="forward" layoutX="441.0" layoutY="17.0" mnemonicParsing="false" onMouseClicked="#handleForward" prefHeight="26.0" prefWidth="62.0" text="Forward" />
 </children>
 </AnchorPane>

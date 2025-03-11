@@ -9,6 +9,8 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
+import javafx.application.Platform;
+
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -40,6 +42,8 @@ public class ClientHomeController {
                     System.out.println("Autenticazione riuscita con l'email: " + email);
                     ClientOperationController.setUserEmail(email);
 
+                    startAutoRefresh();  // Avvia il thread di aggiornamento automatico
+
                     // Load the new scene for the operations
                     try {
                         FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
@@ -69,6 +73,50 @@ public class ClientHomeController {
                 return;
             }
         }
+    }
+
+    private void startAutoRefresh() {
+        Thread refreshThread = new Thread(() -> {
+            while (true) {
+                try {
+                    String nuoviMessaggi = controllaNuoviMessaggi();
+
+                    if (nuoviMessaggi != null && !nuoviMessaggi.isEmpty()) {
+                        Platform.runLater(() -> {
+                            mostraNotifica("Nuovi messaggi ricevuti!");
+                        });
+                    }
+
+                    Thread.sleep(5000); // Controlla ogni 5 secondi
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        refreshThread.setDaemon(true);
+        refreshThread.start();
+    }
+
+    private String controllaNuoviMessaggi() {
+        try (Socket socket = new Socket("localhost", 4000);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("GET_NEW_MESSAGES");
+            out.writeObject(ClientOperationController.getUserEmail()); // Usa l'email dell'utente
+            out.flush();
+
+            return (String) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void mostraNotifica(String messaggio) {
+        System.out.println("Notifica: " + messaggio);
+        // Qui puoi usare una finestra di dialogo, icona di sistema, ecc.
     }
 
 

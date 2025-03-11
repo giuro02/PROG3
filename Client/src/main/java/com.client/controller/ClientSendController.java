@@ -1,6 +1,7 @@
 // SendMessageController.java
 package com.client.controller;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -105,6 +106,7 @@ public class ClientSendController {
             // Pass the userEmail again if needed
             controller.setUserEmail(sender);
             controller.updateInbox();
+            controller.startAutoRefresh(); // <-- Aggiungi questa riga per avviare l'aggiornamento automatico
 
             Stage stage = (Stage) sendButton.getScene().getWindow();
             stage.setScene(new Scene(root));
