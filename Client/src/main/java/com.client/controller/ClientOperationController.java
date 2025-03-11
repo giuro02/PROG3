@@ -1,6 +1,8 @@
 package com.client.controller;
 
 import com.common.Mail;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -8,14 +10,13 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +27,9 @@ public class ClientOperationController {
     private static String userEmail;
     // To track the last inbox size for notification purposes
     private int lastInboxSize = 0;
+    private Set<Integer> newMessageIds = new HashSet<>();
+    @FXML
+    private Label newMessageLabel;
 
     @FXML
     private ListView<Mail> inboxListView;
@@ -37,7 +41,8 @@ public class ClientOperationController {
     private Button replyButton, replyAllButton, deleteButton, writeButton;
     @FXML
     private TextField destinatarioField;
-
+    @FXML
+    private Label notificationLabel;
     // Scheduled executor for polling the server for inbox updates
     private ScheduledExecutorService scheduler;
 
@@ -52,7 +57,7 @@ public class ClientOperationController {
     // This method is automatically called after the FXML is loaded.
     @FXML
     public void initialize() {
-        // Start polling the server every 5 seconds
+        // Avvia il polling dell'inbox ogni 5 secondi
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
             if (userEmail != null && !userEmail.isEmpty()) {
@@ -67,7 +72,7 @@ public class ClientOperationController {
      */
     // Add a field at the top of the class
     private boolean initialInboxLoaded = false;
-
+    @FXML
     public void updateInbox() {
         try (Socket socket = new Socket("localhost", 4000);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -80,32 +85,51 @@ public class ClientOperationController {
             List<Mail> newInbox = (List<Mail>) in.readObject();
 
             Platform.runLater(() -> {
-                // If the inbox was already loaded once and now has more messages, show a notification.
-                if (initialInboxLoaded && newInbox.size() > lastInboxSize) {
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Nuovi Messaggi");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Hai ricevuto nuovi messaggi!");
-                    alert.show();
+                // Se è il primo caricamento, non mostriamo notifica
+                if (lastInboxSize == 0) {
+                    lastInboxSize = newInbox.size();
                 }
-                // Update the ListView
+
+                // Se il numero di messaggi è aumentato, aggiungi gli ID dei nuovi messaggi
+                if (newInbox.size() > lastInboxSize) {
+                    for (Mail mail : newInbox) {
+                        // Se non era già presente nella ListView, lo consideriamo nuovo
+                        if (!inboxListView.getItems().contains(mail)) {
+                            newMessageIds.add(mail.getId());
+                        }
+                    }
+                    // Aggiorna la label dedicata
+                    if (!newMessageIds.isEmpty()) {
+                        newMessageLabel.setText("Hai " + newMessageIds.size() + " nuovi messaggi!");
+                    }
+                }
+
+                // Aggiorna la ListView
                 inboxListView.getItems().setAll(newInbox);
                 lastInboxSize = newInbox.size();
-                initialInboxLoaded = true;  // Mark that we've already loaded once
             });
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-
     @FXML
     public void handleButtonClick() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
         if (selectedMail != null) {
+            // Se questo messaggio è tra i "nuovi"
+            if (newMessageIds.contains(selectedMail.getId())) {
+                newMessageIds.remove(selectedMail.getId());
+                if (newMessageIds.isEmpty()) {
+                    newMessageLabel.setText(""); // svuota la notifica
+                } else {
+                    newMessageLabel.setText("Hai " + newMessageIds.size() + " nuovi messaggi!");
+                }
+            }
+
+            // Mostra i dettagli del messaggio nell'area di testo
             mail_info.setText("Sending date: " + selectedMail.getDate());
             String body = selectedMail.getMessage();
-            // If the subject starts with "Fwd:" we display a "FORWARDED MESSAGE" header in the details.
             if (selectedMail.getTitle() != null && selectedMail.getTitle().toLowerCase().startsWith("fwd:")) {
                 body = "FORWARDED MESSAGE:\n\n" + body;
             }
@@ -114,6 +138,7 @@ public class ClientOperationController {
             showError("No message selected.");
         }
     }
+
 
     @FXML
     public void handleReply() {

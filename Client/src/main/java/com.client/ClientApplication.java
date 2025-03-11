@@ -22,5 +22,4 @@ public class ClientApplication extends Application {
     }
 }
 
-//VANNO AGGIUNTE UN SACCO DI COSE (TUTTE LE OPERAZIONIIII PER POTER FARE IL LOADER DI CLIENT-OPERATION) --> o forse no ahah
 

@@ -13,14 +13,14 @@ public class ServerController {
     @FXML
     private TextArea logArea;
     @FXML
-    private ListView<String> userList;
+    //private ListView<String> userList;
 
     private final Server server = Server.getInstance();
 
     @FXML
     public void initialize() {
         logArea.textProperty().bind(server.getLogTableProperty());
-        userList.setItems(server.getUsersProperty());
+       // userList.setItems(server.getUsersProperty());
     }
      //viene usato per dire a JavaFX di aggiornare la GUI quando è pronto, senza bloccare il thread principale.
     public void appendLog(String message) {
