@@ -51,7 +51,6 @@ public class ServerHandler {
             server.updateLogTable("⚠ Errore durante la chiusura del server: " + e.getMessage());
         }
     }
-
     private static void handleClient(Socket clientSocket) {
         try (
                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
@@ -71,7 +70,7 @@ public class ServerHandler {
                     response = "SUCCESSO: Login avvenuto con successo.";
                     server.updateLogTable("✅ Login riuscito per: " + email);
                 }
-            }  else if ("GET_INBOX".equals(clientRequest)) {
+            } else if ("GET_INBOX".equals(clientRequest)) {
                 String userEmail = (String) in.readObject();
                 // Ottieni la casella completa (tutti i messaggi)
                 List<Mail> inbox = server.getInbox(userEmail);
@@ -86,7 +85,7 @@ public class ServerHandler {
                 out.writeObject(responseMap);
                 out.flush();
                 return;
-            }else if ("SEND_MAIL".equals(clientRequest)) {
+            } else if ("SEND_MAIL".equals(clientRequest)) {
                 Mail mail = (Mail) in.readObject();
                 List<String> invalidRecipients = server.sendMail(mail);
 
@@ -107,7 +106,7 @@ public class ServerHandler {
                 } else {
                     response = "ERRORE: Email non trovata o eliminazione fallita.";
                 }
-            }else if ("MARK_READ".equals(clientRequest)) {
+            } else if ("MARK_READ".equals(clientRequest)) {
                 // Gestione del comando per marcare un messaggio come letto
                 String userEmail = (String) in.readObject();
                 int mailId = (int) in.readObject();
@@ -115,12 +114,19 @@ public class ServerHandler {
                 response = "SUCCESSO";
             }
 
-
             out.writeObject(response);  // SEND FINAL RESPONSE
             out.flush();
 
+        } catch (java.net.SocketException e) {
+            // Se l'eccezione contiene "An established connection was aborted...",
+            // non logghiamo nulla. Altrimenti, logghiamo come prima.
+            String msg = e.getMessage();
+            if (msg == null || !msg.contains("An established connection was aborted")) {
+                server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
+            }
         } catch (IOException | ClassNotFoundException e) {
             server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
         }
     }
+
 }
