@@ -157,4 +157,7 @@ public class ClientSendController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    public void shutdown() {
+        // Nessuna risorsa da chiudere in questa view
+    }
 }

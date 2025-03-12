@@ -4,7 +4,9 @@ import com.common.Mail;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -56,49 +58,67 @@ public class ServerHandler {
                 ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())
         ) {
             String clientRequest = (String) in.readObject();
+            String response = "UNKNOWN_COMMAND";  // Default response
 
             if ("LOGIN".equals(clientRequest)) {
                 String email = (String) in.readObject();
                 server.updateLogTable("Tentativo di login da: " + email);
+
                 if (!server.isEmailRegistered(email)) {
-                    out.writeObject("ERRORE: L'indirizzo email non esiste.");
+                    response = "ERRORE: L'indirizzo email non esiste.";
                     server.updateLogTable("❌ Errore: L'email " + email + " non esiste.");
                 } else {
-                    out.writeObject("SUCCESSO: Login avvenuto con successo.");
+                    response = "SUCCESSO: Login avvenuto con successo.";
                     server.updateLogTable("✅ Login riuscito per: " + email);
                 }
-                out.flush();
-            } else if ("GET_INBOX".equals(clientRequest)) {
+            }  else if ("GET_INBOX".equals(clientRequest)) {
                 String userEmail = (String) in.readObject();
+                // Ottieni la casella completa (tutti i messaggi)
                 List<Mail> inbox = server.getInbox(userEmail);
-                out.writeObject(inbox);
+                // Calcola il numero di messaggi non letti
+                int unreadCount = server.getUnreadCount(userEmail);
+
+                // Crea una Map per trasmettere i due valori
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("mails", inbox);
+                responseMap.put("unreadCount", unreadCount);
+
+                out.writeObject(responseMap);
                 out.flush();
-            } else if ("SEND_MAIL".equals(clientRequest)) {
+                return;
+            }else if ("SEND_MAIL".equals(clientRequest)) {
                 Mail mail = (Mail) in.readObject();
                 List<String> invalidRecipients = server.sendMail(mail);
 
                 if (invalidRecipients.isEmpty()) {
-                    out.writeObject("SUCCESSO");
-                    server.updateLogTable("📩 Email inviata da " + mail.getSender() + " a: " + String.join(", ", mail.getReceiver()));
+                    response = "SUCCESSO";
+                    server.updateLogTable("📩 Email inviata da " + mail.getSender());
                 } else {
-                    out.writeObject("ERRORE: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste");
-                    server.updateLogTable("⚠ Errore nell'invio: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste");
+                    response = "ERRORE: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste";
                 }
-                out.flush();
             } else if ("DELETE_MAIL".equals(clientRequest)) {
                 String userEmail = (String) in.readObject();
                 Mail mailToDelete = (Mail) in.readObject();
                 boolean success = server.deleteMail(userEmail, mailToDelete);
 
                 if (success) {
-                    out.writeObject("SUCCESSO");
+                    response = "SUCCESSO";
                     server.updateLogTable("Email eliminata per " + userEmail);
                 } else {
-                    out.writeObject("ERRORE: Email non trovata o eliminazione fallita.");
-                    server.updateLogTable("Errore: impossibile eliminare email per " + userEmail);
+                    response = "ERRORE: Email non trovata o eliminazione fallita.";
                 }
-                out.flush();
+            }else if ("MARK_READ".equals(clientRequest)) {
+                // Gestione del comando per marcare un messaggio come letto
+                String userEmail = (String) in.readObject();
+                int mailId = (int) in.readObject();
+                server.markMailAsRead(userEmail, mailId);
+                response = "SUCCESSO";
             }
+
+
+            out.writeObject(response);  // SEND FINAL RESPONSE
+            out.flush();
+
         } catch (IOException | ClassNotFoundException e) {
             server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
         }

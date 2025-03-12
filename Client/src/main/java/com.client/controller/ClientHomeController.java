@@ -6,12 +6,14 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 import javafx.application.Platform;
 
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -20,7 +22,9 @@ import java.net.Socket;
 public class ClientHomeController {
 
     @FXML
-    private TextField emailTextField;  // Campo per inserire l'indirizzo email
+    private TextField emailTextField;
+    @FXML
+    private Label newMessageLabel;// Campo per inserire l'indirizzo email
 
     //@FXML
     //private Button loginButton;  // Bottone per inviare l'indirizzo email e autenticarsi
@@ -30,95 +34,40 @@ public class ClientHomeController {
 
     @FXML
     private void handleLogin() {
-        String email;
+        String email = emailTextField.getText();
 
-        while (true) {
-            email = emailTextField.getText();
+        if (isValidEmail(email)) {
+            String response = sendLoginRequestToServer(email);
 
-            if (isValidEmail(email)) {
-                String response = sendLoginRequestToServer(email);
+            if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
+                ClientOperationController.setUserEmail(email);
 
-                if ("SUCCESSO: Login avvenuto con successo.".equals(response)) {
-                    System.out.println("Autenticazione riuscita con l'email: " + email);
-                    ClientOperationController.setUserEmail(email);
+                // Load the client UI
+                try {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
+                    Parent root = loader.load();
 
-                    startAutoRefresh();  // Avvia il thread di aggiornamento automatico
+                    // ✅ Get the controller instance after loading FXML
+                    ClientOperationController controller = loader.getController();
+                    controller.resetInboxSize(); // ✅ Now we can call the non-static method
 
-                    // Load the new scene for the operations
-                    try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
-                        Parent root = loader.load();
-
-                        // 1) Get the current stage
-                        Stage stage = (Stage) emailTextField.getScene().getWindow();
-                        // 2) Set the window title with the user’s email
-                        stage.setTitle("Mail Client - " + email);
-
-                        Scene scene = new Scene(root);
-                        stage.setScene(scene);
-                        stage.show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        showError("Errore", "Impossibile caricare la schermata successiva.");
-                    }
-                    break;
-                } else {
-                    showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
-                    emailTextField.clear();
-                    return;
+                    Stage stage = (Stage) emailTextField.getScene().getWindow();
+                    stage.setTitle("Mail Client - " + email);
+                    stage.setScene(new Scene(root));
+                    stage.show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    showError("Errore", "Impossibile caricare la schermata successiva.");
                 }
             } else {
-                showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
+                showError("Email non trovata", "L'indirizzo email inserito non è registrato nel nostro sistema.");
                 emailTextField.clear();
-                return;
             }
+        } else {
+            showError("Email non valida", "Per favore, inserisci un indirizzo email valido.");
+            emailTextField.clear();
         }
     }
-
-    private void startAutoRefresh() {
-        Thread refreshThread = new Thread(() -> {
-            while (true) {
-                try {
-                    String nuoviMessaggi = controllaNuoviMessaggi();
-
-                    if (nuoviMessaggi != null && !nuoviMessaggi.isEmpty()) {
-                        Platform.runLater(() -> {
-                            mostraNotifica("Nuovi messaggi ricevuti!");
-                        });
-                    }
-
-                    Thread.sleep(5000); // Controlla ogni 5 secondi
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        refreshThread.setDaemon(true);
-        refreshThread.start();
-    }
-
-    private String controllaNuoviMessaggi() {
-        try (Socket socket = new Socket("localhost", 4000);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
-            out.writeObject("GET_NEW_MESSAGES");
-            out.writeObject(ClientOperationController.getUserEmail()); // Usa l'email dell'utente
-            out.flush();
-
-            return (String) in.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private void mostraNotifica(String messaggio) {
-        System.out.println("Notifica: " + messaggio);
-        // Qui puoi usare una finestra di dialogo, icona di sistema, ecc.
-    }
-
 
 
     private String sendLoginRequestToServer(String email) {
@@ -155,6 +104,10 @@ public class ClientHomeController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    public void shutdown() {
+        // Nessuna risorsa da chiudere in questa view
     }
 }
 

@@ -27,9 +27,12 @@ public class ClientOperationController {
     private static String userEmail;
     // To track the last inbox size for notification purposes
     private int lastInboxSize = 0;
-    private Set<Integer> newMessageIds = new HashSet<>();
+
+    private Set<Integer> unreadMessageIds = new HashSet<>(); // Tracks unread messages
+
     @FXML
     private Label newMessageLabel;
+
 
     @FXML
     private ListView<Mail> inboxListView;
@@ -45,7 +48,6 @@ public class ClientOperationController {
     private Label notificationLabel;
     // Scheduled executor for polling the server for inbox updates
     private ScheduledExecutorService scheduler;
-
     // Set the user's email (called after login)
     public static void setUserEmail(String email) {
         userEmail = email;
@@ -57,23 +59,20 @@ public class ClientOperationController {
     // This method is automatically called after the FXML is loaded.
     @FXML
     public void initialize() {
-        // Avvia il polling dell'inbox ogni 5 secondi
+        unreadMessageIds.clear(); // ✅ Clear previous notifications
+        updateNotificationLabel(); // ✅ Reset the notification label
+
+        // Start auto-refreshing inbox every 5 seconds
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
             if (userEmail != null && !userEmail.isEmpty()) {
-                updateInbox();
+                checkNewMessages();  // ✅ Properly checks messages
             }
         }, 0, 5, TimeUnit.SECONDS);
     }
 
-    /**
-     * Contacts the server to fetch the inbox for the current user.
-     * If new messages are detected, a notification is shown.
-     */
-    // Add a field at the top of the class
-    private boolean initialInboxLoaded = false;
-    @FXML
-    public void updateInbox() {
+
+    private void checkNewMessagesOnLogin() {
         try (Socket socket = new Socket("localhost", 4000);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
@@ -85,31 +84,102 @@ public class ClientOperationController {
             List<Mail> newInbox = (List<Mail>) in.readObject();
 
             Platform.runLater(() -> {
-                // Se è il primo caricamento, non mostriamo notifica
-                if (lastInboxSize == 0) {
-                    lastInboxSize = newInbox.size();
+                int newMessageCount = newInbox.size() - lastInboxSize;
+                if (newMessageCount > 0) {
+                    newMessageLabel.setText("New " + newMessageCount + " messages!");
                 }
 
-                // Se il numero di messaggi è aumentato, aggiungi gli ID dei nuovi messaggi
-                if (newInbox.size() > lastInboxSize) {
-                    for (Mail mail : newInbox) {
-                        // Se non era già presente nella ListView, lo consideriamo nuovo
-                        if (!inboxListView.getItems().contains(mail)) {
-                            newMessageIds.add(mail.getId());
-                        }
-                    }
-                    // Aggiorna la label dedicata
-                    if (!newMessageIds.isEmpty()) {
-                        newMessageLabel.setText("Hai " + newMessageIds.size() + " nuovi messaggi!");
-                    }
-                }
-
-                // Aggiorna la ListView
                 inboxListView.getItems().setAll(newInbox);
                 lastInboxSize = newInbox.size();
             });
+
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Check for new messages from the server and update the UI.
+     */
+    private void checkNewMessages() {
+        try (Socket socket = new Socket("localhost", 4000);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("GET_INBOX");
+            out.writeObject(userEmail);
+            out.flush();
+
+            // Ricevi la Map di risposta
+            Map<String, Object> responseMap = (Map<String, Object>) in.readObject();
+            List<Mail> inbox = (List<Mail>) responseMap.get("mails");
+            int unreadCount = (int) responseMap.get("unreadCount");
+
+            Platform.runLater(() -> {
+                // Aggiorna la ListView con TUTTI i messaggi
+                inboxListView.getItems().setAll(inbox);
+                // Aggiorna l'etichetta delle notifiche con il numero dei messaggi non letti
+                if (unreadCount > 0) {
+                    newMessageLabel.setText("New " + unreadCount + " messages!");
+                } else {
+                    newMessageLabel.setText("");
+                }
+            });
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    /**
+     * Contacts the server to fetch the inbox for the current user.
+     * If new messages are detected, a notification is shown.
+     */
+    // Add a field at the top of the class
+    private boolean initialInboxLoaded = false;
+    public void updateInbox() {
+        try (Socket socket = new Socket("localhost", 4000);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("GET_INBOX");
+            out.writeObject(userEmail);
+            out.flush();
+
+            // Ricevi la risposta come Map
+            Map<String, Object> responseMap = (Map<String, Object>) in.readObject();
+            // Estrai la lista dei messaggi e il conteggio dei messaggi non letti
+            List<Mail> inbox = (List<Mail>) responseMap.get("mails");
+            int unreadCount = (int) responseMap.get("unreadCount");
+
+            Platform.runLater(() -> {
+                // Aggiorna la ListView con tutti i messaggi
+                inboxListView.getItems().setAll(inbox);
+                // Aggiorna la notifica con il numero di messaggi non letti
+                if (unreadCount > 0) {
+                    newMessageLabel.setText("New " + unreadCount + " messages!");
+                } else {
+                    newMessageLabel.setText("");
+                }
+            });
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void resetInboxSize() {
+        lastInboxSize = 0; // ✅ Reset inbox size on login
+    }
+
+    private void updateNotificationLabel() {
+        if (!unreadMessageIds.isEmpty()) {
+            newMessageLabel.setText("New " + unreadMessageIds.size() + " messages!");
+        } else {
+            newMessageLabel.setText(""); // Clear notification if all messages are read
         }
     }
 
@@ -117,27 +187,37 @@ public class ClientOperationController {
     public void handleButtonClick() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
         if (selectedMail != null) {
-            // Se questo messaggio è tra i "nuovi"
-            if (newMessageIds.contains(selectedMail.getId())) {
-                newMessageIds.remove(selectedMail.getId());
-                if (newMessageIds.isEmpty()) {
-                    newMessageLabel.setText(""); // svuota la notifica
-                } else {
-                    newMessageLabel.setText("Hai " + newMessageIds.size() + " nuovi messaggi!");
-                }
-            }
-
-            // Mostra i dettagli del messaggio nell'area di testo
+            // Visualizza i dettagli del messaggio
             mail_info.setText("Sending date: " + selectedMail.getDate());
-            String body = selectedMail.getMessage();
-            if (selectedMail.getTitle() != null && selectedMail.getTitle().toLowerCase().startsWith("fwd:")) {
-                body = "FORWARDED MESSAGE:\n\n" + body;
-            }
-            mail_text.setText(body);
-        } else {
-            showError("No message selected.");
+            mail_text.setText(selectedMail.getMessage());
+
+            // Invia il comando per marcare il messaggio come letto
+            markMessageAsRead(selectedMail);
         }
     }
+
+    private void markMessageAsRead(Mail mail) {
+        new Thread(() -> {
+            try (Socket socket = new Socket("localhost", 4000);
+                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+                out.writeObject("MARK_READ");
+                out.writeObject(getUserEmail());
+                out.writeObject(mail.getId());
+                out.flush();
+
+                // Leggi la risposta (opzionale)
+                String response = (String) in.readObject();
+                if (!"SUCCESSO".equals(response)) {
+                    System.err.println("Errore nel marcare il messaggio come letto: " + response);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
 
 
     @FXML

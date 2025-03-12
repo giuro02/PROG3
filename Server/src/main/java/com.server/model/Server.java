@@ -6,10 +6,13 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import java.io.*;
 import java.util.*;
 
 public class Server {
     private static Server instance;
+    // All'interno della classe Server (in package com.server.model)
+    private Map<String, Set<Integer>> readMap = new HashMap<>();
 
     // Set di account validi (le email registrate), lette da data.csv
     private final Set<String> accounts;
@@ -33,7 +36,7 @@ public class Server {
 
         // 2) Carica le mail da emails.csv
         mailboxes = CsvHandler.loadMailboxes(MAILS_FILE);
-
+        loadReadReceipts();
         // Inizializza le strutture di log e utenti con JavaFX
         logTable = new SimpleStringProperty("");
         users = FXCollections.observableArrayList();
@@ -129,6 +132,76 @@ public class Server {
             }
         });
     }
+    private void loadReadReceipts() {
+        File file = new File("readReceipts.csv");
+        if (!file.exists()) {
+            System.out.println("File readReceipts.csv non trovato. Nessuna lettura caricata.");
+            return;
+        }
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    String email = parts[0].trim();
+                    int mailId = Integer.parseInt(parts[1].trim());
+                    readMap.putIfAbsent(email, new HashSet<>());
+                    readMap.get(email).add(mailId);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveReadReceipts() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("readReceipts.csv", false))) {
+            for (Map.Entry<String, Set<Integer>> entry : readMap.entrySet()) {
+                String email = entry.getKey();
+                for (Integer mailId : entry.getValue()) {
+                    bw.write(email + "," + mailId);
+                    bw.newLine();
+                }
+            }
+            System.out.println("DEBUG: Read receipts salvati.");
+        } catch (IOException e) {
+            System.out.println("Errore nel salvataggio di read receipts: " + e.getMessage());
+        }
+    }
+
+
+    public synchronized void markMailAsRead(String userEmail, int mailId) {
+        readMap.putIfAbsent(userEmail, new HashSet<>());
+        readMap.get(userEmail).add(mailId);
+        saveReadReceipts();  // Salva subito le modifiche
+        updateLogTable("Messaggio " + mailId + " marcato come letto per " + userEmail);
+    }
+    public synchronized int getUnreadCount(String userEmail) {
+        List<Mail> allMails = mailboxes.getOrDefault(userEmail, new ArrayList<>());
+        Set<Integer> readIds = readMap.getOrDefault(userEmail, new HashSet<>());
+        int count = 0;
+        for (Mail mail : allMails) {
+            if (!readIds.contains(mail.getId())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public synchronized List<Mail> getUnreadInbox(String userEmail) {
+        List<Mail> allMails = mailboxes.getOrDefault(userEmail, new ArrayList<>());
+        Set<Integer> readIds = readMap.getOrDefault(userEmail, new HashSet<>());
+        List<Mail> unreadMails = new ArrayList<>();
+        for (Mail mail : allMails) {
+            if (!readIds.contains(mail.getId())) {
+                unreadMails.add(mail);
+            }
+        }
+        return unreadMails;
+    }
+
 
     public void addUser(String user) {
         Platform.runLater(() -> users.add(user));
