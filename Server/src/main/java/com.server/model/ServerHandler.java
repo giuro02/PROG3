@@ -26,8 +26,8 @@ public class ServerHandler {
 
             while (running) {
                 try {
-                    Socket clientSocket = serverSocket.accept();
-                    threadPool.execute(() -> handleClient(clientSocket));
+                    Socket clientSocket = serverSocket.accept(); //attende la connessione del cliente
+                    threadPool.execute(() -> handleClient(clientSocket)); //syassegna al client un thread libero o ne crea uno
                 } catch (IOException e) {
                     if (!running) break; // Exit loop when stopping server
                     server.updateLogTable("❌ Errore con un client: " + e.getMessage());

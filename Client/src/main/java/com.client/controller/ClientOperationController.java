@@ -4,6 +4,8 @@ import com.common.Mail;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -27,6 +29,7 @@ public class ClientOperationController {
     private static String userEmail;
     // To track the last inbox size for notification purposes
     private int lastInboxSize = 0;
+    private ObservableList<Mail> inboxList = FXCollections.observableArrayList();
 
     private Set<Integer> unreadMessageIds = new HashSet<>(); // Tracks unread messages
 
@@ -59,17 +62,21 @@ public class ClientOperationController {
     // This method is automatically called after the FXML is loaded.
     @FXML
     public void initialize() {
-        unreadMessageIds.clear(); // ✅ Clear previous notifications
-        updateNotificationLabel(); // ✅ Reset the notification label
+        unreadMessageIds.clear(); // ✅ Reset notifiche
+        updateNotificationLabel();
+
+        // Collega l'ObservableList alla ListView
+        inboxListView.setItems(inboxList);
 
         // Start auto-refreshing inbox every 5 seconds
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
             if (userEmail != null && !userEmail.isEmpty()) {
-                checkNewMessages();  // ✅ Properly checks messages
+                checkNewMessages();
             }
         }, 0, 5, TimeUnit.SECONDS);
     }
+
 
 
     private void checkNewMessagesOnLogin() {
@@ -151,16 +158,25 @@ public class ClientOperationController {
 
             // Ricevi la risposta come Map
             Map<String, Object> responseMap = (Map<String, Object>) in.readObject();
-            // Estrai la lista dei messaggi e il conteggio dei messaggi non letti
             List<Mail> inbox = (List<Mail>) responseMap.get("mails");
-            int unreadCount = (int) responseMap.get("unreadCount");
+            Set<Integer> unreadIds = (Set<Integer>) responseMap.get("unreadIds"); // ID dei messaggi non letti
 
             Platform.runLater(() -> {
-                // Aggiorna la ListView con tutti i messaggi
+                // Modifica il titolo dei messaggi non letti per mostrare "(New)"
+                List<String> formattedInbox = new ArrayList<>();
+                for (Mail mail : inbox) {
+                    String displayTitle = mail.getTitle();
+                    if (unreadIds.contains(mail.getId())) {
+                        displayTitle += " (New)";
+                    }
+                    formattedInbox.add(displayTitle);
+                }
+
                 inboxListView.getItems().setAll(inbox);
-                // Aggiorna la notifica con il numero di messaggi non letti
-                if (unreadCount > 0) {
-                    newMessageLabel.setText("New " + unreadCount + " messages!");
+
+                // Aggiorna l'etichetta delle notifiche
+                if (!unreadIds.isEmpty()) {
+                    newMessageLabel.setText("New " + unreadIds.size() + " messages!");
                 } else {
                     newMessageLabel.setText("");
                 }
@@ -170,6 +186,7 @@ public class ClientOperationController {
             e.printStackTrace();
         }
     }
+
 
     public void resetInboxSize() {
         lastInboxSize = 0; // ✅ Reset inbox size on login
@@ -186,15 +203,70 @@ public class ClientOperationController {
     @FXML
     public void handleButtonClick() {
         Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMail != null) {
-            // Visualizza i dettagli del messaggio
-            mail_info.setText("Sending date: " + selectedMail.getDate());
-            mail_text.setText(selectedMail.getMessage());
-
-            // Invia il comando per marcare il messaggio come letto
-            markMessageAsRead(selectedMail);
+        if (selectedMail == null) {
+            showError("No message selected.");
+            return;
         }
+
+        // Mostra il contenuto dell'email
+        mail_info.setText("Sending date: " + selectedMail.getDate());
+        mail_text.setText(selectedMail.getMessage());
+
+        // Controlla se il messaggio è già stato letto
+        if (!unreadMessageIds.contains(selectedMail.getId())) {
+            return; // Se è già letto, esce subito
+        }
+
+        // Invia richiesta al server per segnare il messaggio come letto
+        new Thread(() -> {
+            try (Socket socket = new Socket("localhost", 4000);
+                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+                out.writeObject("MARK_READ");
+                out.writeObject(userEmail);
+                out.writeObject(selectedMail.getId());
+                out.flush();
+
+                String response = (String) in.readObject();
+                if ("SUCCESSO".equals(response)) {
+                    Platform.runLater(() -> {
+                        // Rimuove l'ID del messaggio dall'elenco di non letti
+                        unreadMessageIds.remove(selectedMail.getId());
+
+                        // Aggiorna la UI rimuovendo "(New)" dal titolo della mail
+                        List<Mail> updatedInbox = new ArrayList<>();
+                        for (Mail mail : inboxListView.getItems()) {
+                            if (mail.getId() == selectedMail.getId()) {
+                                // ✅ Assicuriamoci che `title` sia una String e `receiver` sia una List<String>
+                                String formattedTitle = mail.getTitle() != null ? mail.getTitle().replace(" (New)", "") : "";
+                                List<String> recipients = mail.getReceiver() != null ? new ArrayList<>(mail.getReceiver()) : new ArrayList<>();
+
+                                // ✅ Crea una nuova istanza corretta di Mail
+                                Mail updatedMail = new Mail(mail.getId(), formattedTitle, mail.getSender(), recipients, mail.getMessage(), mail.getDate());
+                                updatedInbox.add(updatedMail);
+                            } else {
+                                updatedInbox.add(mail);
+                            }
+                        }
+
+                        // Ricarica la ListView senza "(New)" nel messaggio appena letto
+                        inboxListView.getItems().setAll(updatedInbox);
+
+                        // Aggiorna la notifica
+                        updateNotificationLabel();
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
+
+
+
+
+
 
     private void markMessageAsRead(Mail mail) {
         new Thread(() -> {
@@ -359,28 +431,33 @@ public class ClientOperationController {
             return;
         }
 
-        try (Socket socket = new Socket("localhost", 4000);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+        new Thread(() -> {
+            try (Socket socket = new Socket("localhost", 4000);
+                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
-            out.writeObject("DELETE_MAIL");
-            out.writeObject(getUserEmail());
-            out.writeObject(selectedMail);
-            out.flush();
+                out.writeObject("DELETE_MAIL");
+                out.writeObject(getUserEmail());
+                out.writeObject(selectedMail);
+                out.flush();
 
-            String response = (String) in.readObject();
-            if ("SUCCESSO".equals(response)) {
-                updateInbox(); // Refresh inbox from the server
-                mail_text.setText("");
-                mail_info.setText("");
-            } else {
-                showError("Failed to delete email.");
+                String response = (String) in.readObject();
+                if ("SUCCESSO".equals(response)) {
+                    Platform.runLater(() -> {
+                        updateInbox();  // ✅ FORZA IL REFRESH IMMEDIATO
+                        mail_text.setText("");
+                        mail_info.setText("");
+                    });
+                } else {
+                    showError("Failed to delete email.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                showError("Error deleting email.");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Error deleting email.");
-        }
+        }).start();
     }
+
 
     private boolean isValidEmail(String email) {
         return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
@@ -440,6 +517,7 @@ public class ClientOperationController {
         }
     }
 
+    //lo scheduler garantisce che solo un thread alla volta aggiorni l'inbox
     public void startAutoRefresh() {
         // Start the scheduled executor if it's not already running.
         if (scheduler == null || scheduler.isShutdown()) {
