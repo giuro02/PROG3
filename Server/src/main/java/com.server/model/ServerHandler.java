@@ -15,13 +15,14 @@ public class ServerHandler {
     private static final int PORT = 4000;
     private static ServerSocket serverSocket;
     private static final Server server = Server.getInstance();
-    private static boolean running = true; // Flag to stop server
-    private static final ExecutorService threadPool = Executors.newCachedThreadPool(); // Manages client connections
+    private static boolean running = true; // Flag per stoppare il server
+    private static final ExecutorService threadPool = Executors.newCachedThreadPool(); // Gestisce le connessioni con i client
 
+    // Avvia il server: apre il ServerSocket e accetta connessioni in loop
     public static void startServer() {
         try {
             serverSocket = new ServerSocket(PORT);
-            serverSocket.setReuseAddress(true);  // Important to allow reusing the port after closing
+            serverSocket.setReuseAddress(true);  // Permette di riusare la porta dopo averla chiusa
             server.updateLogTable(" Server started on port: " + PORT);
 
             while (running) {
@@ -29,8 +30,8 @@ public class ServerHandler {
                     Socket clientSocket = serverSocket.accept();
                     threadPool.execute(() -> handleClient(clientSocket));
                 } catch (IOException e) {
-                    if (!running) break; // Exit loop when stopping server
-                    server.updateLogTable("❌ Errore con un client: " + e.getMessage());
+                    if (!running) break; // Esci dal loop se il server è stoppato
+                    server.updateLogTable("Errore con un client: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
@@ -38,26 +39,28 @@ public class ServerHandler {
         }
     }
 
+    // Ferma il server: chiude il ServerSocket e il thread pool
     public static void stopServer() {
-        running = false;  // Set flag to stop the server
-
+        running = false;  // Imposta flag per stoppare il server
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
-                serverSocket.close(); // Close the ServerSocket
+                serverSocket.close(); // Chiudi il ServerSocket
             }
-            threadPool.shutdown(); // Stop accepting new connections
+            threadPool.shutdown(); // Non accettare più connessioni
             server.updateLogTable(" Server stopped.");
         } catch (IOException e) {
-            server.updateLogTable("⚠ Errore durante la chiusura del server: " + e.getMessage());
+            server.updateLogTable("Errore durante la chiusura del server: " + e.getMessage());
         }
     }
+
+    // Gestisce la comunicazione con un client: legge il comando e invia la risposta appropriata
     private static void handleClient(Socket clientSocket) {
         try (
                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
                 ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())
         ) {
             String clientRequest = (String) in.readObject();
-            String response = "UNKNOWN_COMMAND";  // Default response
+            String response = "UNKNOWN_COMMAND";
 
             if ("LOGIN".equals(clientRequest)) {
                 String email = (String) in.readObject();
@@ -72,7 +75,7 @@ public class ServerHandler {
                 }
             } else if ("GET_INBOX".equals(clientRequest)) {
                 String userEmail = (String) in.readObject();
-                // Ottieni la casella completa (tutti i messaggi)
+                // Ottiene la casella completa (tutti i messaggi)
                 List<Mail> inbox = server.getInbox(userEmail);
                 // Calcola il numero di messaggi non letti
                 int unreadCount = server.getUnreadCount(userEmail);
@@ -107,19 +110,17 @@ public class ServerHandler {
                     response = "ERRORE: Email non trovata o eliminazione fallita.";
                 }
             } else if ("MARK_READ".equals(clientRequest)) {
-                // Gestione del comando per marcare un messaggio come letto
                 String userEmail = (String) in.readObject();
                 int mailId = (int) in.readObject();
                 server.markMailAsRead(userEmail, mailId);
                 response = "SUCCESSO";
             }
 
-            out.writeObject(response);  // SEND FINAL RESPONSE
+            out.writeObject(response);
             out.flush();
 
         } catch (java.net.SocketException e) {
-            // Se l'eccezione contiene "An established connection was aborted...",
-            // non logghiamo nulla. Altrimenti, logghiamo come prima.
+            // Se l'eccezione indica una connessione abortita, non loggare; altrimenti, logga l'errore.
             String msg = e.getMessage();
             if (msg == null || !msg.contains("An established connection was aborted")) {
                 server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
@@ -128,5 +129,4 @@ public class ServerHandler {
             server.updateLogTable("Errore nella gestione della richiesta: " + e.getMessage());
         }
     }
-
 }

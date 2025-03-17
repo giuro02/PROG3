@@ -10,12 +10,13 @@ import javafx.stage.Stage;
 
 public class ClientApplication extends Application {
 
+    // Avvia l'applicazione Client caricando la UI iniziale
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-home.fxml"));
         Parent root = loader.load();
 
-        // Recupera il controller; in questo caso, ClientHomeController
+        // Recupera il controller per gestire eventuali operazioni in fase di chiusura
         ClientHomeController controller = loader.getController();
 
         Scene scene = new Scene(root);

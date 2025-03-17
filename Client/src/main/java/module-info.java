@@ -5,7 +5,7 @@ module com.client {
     requires javafx.graphics;
     requires javafx.base;
 
-    requires com.common; // If you use `com.common`, keep this
+    requires com.common;
 
     exports com.client;
     exports com.client.model;

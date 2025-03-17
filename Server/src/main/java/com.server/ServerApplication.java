@@ -9,6 +9,7 @@ import com.server.model.ServerHandler;
 
 public class ServerApplication extends Application {
 
+    // Avvia la UI del server e il ServerHandler su un thread separato
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader fxmlLoader = new FXMLLoader(ServerApplication.class.getResource("/server-view.fxml"));
@@ -17,16 +18,16 @@ public class ServerApplication extends Application {
         stage.setScene(scene);
         stage.show();
 
-        // Start the server handler on a separate thread
+        // Avvia il server handler su un thread separato
         Thread serverThread = new Thread(ServerHandler::startServer);
-        serverThread.setDaemon(true); // Daemon thread will exit when the application closes
+        serverThread.setDaemon(true); // Il thread daemon esce quando l'applicazione chiude
         serverThread.start();
 
-        // Shutdown hook to stop the server properly when application exits
+        // Gestisce la chiusura dell'applicazione, fermando il server
         stage.setOnCloseRequest(event -> {
-            ServerHandler.stopServer(); // Stop the server when closing
-            Platform.exit();  // Close the JavaFX application
-            System.exit(0);  // Ensure all threads are terminated
+            ServerHandler.stopServer();
+            Platform.exit();  // Chiude l'applicazione JavaFX
+            System.exit(0);  // Assicura la terminazione di tutti i thread
         });
     }
 
