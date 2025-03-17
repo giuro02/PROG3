@@ -1,5 +1,6 @@
 package com.client.controller;
 
+import com.client.model.Client;
 import com.common.Mail;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -21,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class ClientOperationController {
+/*public class ClientOperationController {
 
     // User's email (set after login)
     private static String userEmail;
@@ -101,7 +102,7 @@ public class ClientOperationController {
     /**
      * Check for new messages from the server and update the UI.
      */
-    private void checkNewMessages() {
+    /*private void checkNewMessages() {
         try (Socket socket = new Socket("localhost", 4000);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
@@ -139,7 +140,7 @@ public class ClientOperationController {
      * If new messages are detected, a notification is shown.
      */
     // Add a field at the top of the class
-    private boolean initialInboxLoaded = false;
+   /* private boolean initialInboxLoaded = false;
     public void updateInbox() {
         try (Socket socket = new Socket("localhost", 4000);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -264,7 +265,7 @@ public class ClientOperationController {
      * Utility: if the subject is "MySubject", returns "Re: MySubject".
      * If it already starts with "Re:", leaves it alone.
      */
-    private String ensureReplyPrefix(String subject) {
+   /* private String ensureReplyPrefix(String subject) {
         if (subject == null) subject = "";
         subject = subject.trim();
         if (subject.toLowerCase().startsWith("re:")) {
@@ -452,4 +453,259 @@ public class ClientOperationController {
         }
     }
 
+}*/
+
+
+public class ClientOperationController {
+
+    private static String userEmail;
+    private int lastInboxSize = 0;
+    private Set<Integer> unreadMessageIds = new HashSet<>();
+
+    @FXML
+    private Label newMessageLabel;
+    @FXML
+    private ListView<Mail> inboxListView;
+    @FXML
+    private TextArea mail_text;
+    @FXML
+    private Label mail_info;
+    @FXML
+    private Button replyButton, replyAllButton, deleteButton, writeButton;
+    @FXML
+    private TextField destinatarioField;
+    @FXML
+    private Label notificationLabel;
+
+    private ScheduledExecutorService scheduler;
+
+    public static void setUserEmail(String email) {
+        userEmail = email;
+    }
+    public static String getUserEmail() {
+        return userEmail;
+    }
+
+    @FXML
+    public void initialize() {
+        unreadMessageIds.clear();
+        updateNotificationLabel();
+
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(() -> {
+            if (userEmail != null && !userEmail.isEmpty()) {
+                updateInbox();
+            }
+        }, 0, 5, TimeUnit.SECONDS);
+    }
+
+    public void updateInbox() {
+        Map<String, Object> responseMap = Client.getInstance().getInbox(userEmail);
+        if (responseMap != null) {
+            List<Mail> inbox = (List<Mail>) responseMap.get("mails");
+            int unreadCount = (int) responseMap.get("unreadCount");
+
+            Platform.runLater(() -> {
+                inboxListView.getItems().setAll(inbox);
+                if (unreadCount > 0) {
+                    newMessageLabel.setText("New " + unreadCount + " messages!");
+                } else {
+                    newMessageLabel.setText("");
+                }
+            });
+        }
+    }
+
+    public void resetInboxSize() {
+        lastInboxSize = 0;
+    }
+
+    private void updateNotificationLabel() {
+        if (!unreadMessageIds.isEmpty()) {
+            newMessageLabel.setText("New " + unreadMessageIds.size() + " messages!");
+        } else {
+            newMessageLabel.setText("");
+        }
+    }
+
+    @FXML
+    public void handleButtonClick() {
+        Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
+        if (selectedMail != null) {
+            mail_info.setText("Sending date: " + selectedMail.getDate());
+            mail_text.setText(selectedMail.getMessage());
+            markMessageAsRead(selectedMail);
+        }
+    }
+
+    private void markMessageAsRead(Mail mail) {
+        new Thread(() -> {
+            String response = Client.getInstance().markMailAsRead(userEmail, mail.getId());
+            if (!"SUCCESSO".equals(response)) {
+                System.err.println("Errore nel marcare il messaggio come letto: " + response);
+            }
+        }).start();
+    }
+
+    @FXML
+    public void handleReply() {
+        Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
+        if (selectedMail == null) {
+            showError("No message selected to reply.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+
+            ClientSendController sendController = loader.getController();
+            String senderEmail = selectedMail.getSender();
+            String originalSubject = selectedMail.getTitle();
+            String newSubject = ensureReplyPrefix(originalSubject);
+            String newBody = "";
+
+            sendController.prefillFields(senderEmail, newSubject, newBody);
+
+            Stage stage = (Stage) replyButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
+        }
+    }
+
+    private String ensureReplyPrefix(String subject) {
+        if (subject == null) subject = "";
+        subject = subject.trim();
+        if (subject.toLowerCase().startsWith("re:")) {
+            return subject;
+        } else {
+            return "Re: " + subject;
+        }
+    }
+
+    @FXML
+    public void handleReplyAll() {
+        Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
+        if (selectedMail == null) {
+            showError("No message selected to reply to all.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+
+            ClientSendController sendController = loader.getController();
+            String senderEmail = selectedMail.getSender();
+            List<String> allRecipients = new ArrayList<>(selectedMail.getReceiver());
+            allRecipients.add(senderEmail);
+            String userEmail = ClientOperationController.getUserEmail();
+            allRecipients.remove(userEmail);
+            String originalSubject = selectedMail.getTitle();
+            String newSubject = ensureReplyPrefix(originalSubject);
+            String newBody = "";
+
+            sendController.prefillFields(String.join(", ", allRecipients), newSubject, newBody);
+
+            Stage stage = (Stage) replyAllButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
+        }
+    }
+
+    @FXML
+    public void handleForward() {
+        Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
+        if (selectedMail == null) {
+            showError("No message selected to forward.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+            ClientSendController sendController = loader.getController();
+
+            String originalSubject = selectedMail.getTitle();
+            String newSubject = originalSubject.toLowerCase().startsWith("fwd:") ? originalSubject : "Fwd: " + originalSubject;
+            String newBody = selectedMail.getMessage();
+            sendController.prefillFields("", newSubject, newBody);
+
+            Stage stage = (Stage) replyButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
+        }
+    }
+
+    @FXML
+    public void handleDelete() {
+        Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
+        if (selectedMail == null) {
+            showError("No message selected to delete.");
+            return;
+        }
+        String response = Client.getInstance().deleteMail(userEmail, selectedMail);
+        if ("SUCCESSO".equals(response)) {
+            updateInbox();
+            mail_text.setText("");
+            mail_info.setText("");
+        } else {
+            showError("Failed to delete email.");
+        }
+    }
+
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
+    }
+
+    private void showError(String message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.showAndWait();
+        });
+    }
+
+    @FXML
+    public void handleWrite() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-send.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) replyButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Failed to load the write email window.");
+        }
+    }
+
+    public void shutdown() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdownNow();
+        }
+    }
+
+    public void startAutoRefresh() {
+        if (scheduler == null || scheduler.isShutdown()) {
+            scheduler = Executors.newSingleThreadScheduledExecutor();
+            scheduler.scheduleAtFixedRate(() -> {
+                if (userEmail != null && !userEmail.isEmpty()) {
+                    updateInbox();
+                }
+            }, 0, 5, TimeUnit.SECONDS);
+        }
+    }
 }

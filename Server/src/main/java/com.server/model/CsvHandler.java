@@ -74,6 +74,7 @@ public class CsvHandler {
                 String receiverField = parts[2].trim();
                 String title = parts[3].trim();
                 String message = parts[4].trim();
+                String restoredMessage = message.replace("\\n", "\n").replace("\\r", "\r");
                 Date date = new Date(Long.parseLong(parts[5].trim()));
 
                 // Split the receiver field using ";" as the delimiter,
@@ -81,8 +82,8 @@ public class CsvHandler {
                 ArrayList<String> recipients = new ArrayList<>(Arrays.asList(receiverField.split(";")));
 
                 // Create the Mail object with the generated id, title, sender, recipients, message, and date.
-                Mail mail = new Mail(id, title, sender, recipients, message, date);
-
+                //Mail mail = new Mail(id, title, sender, recipients, message, date);
+                Mail mail = new Mail(id, title, sender, recipients, restoredMessage, date);
                 // For each recipient, add the mail to that recipient's mailbox.
                 for (String r : recipients) {
                     r = r.trim();
@@ -108,13 +109,20 @@ public class CsvHandler {
             for (Map.Entry<String, List<Mail>> entry : mailboxes.entrySet()) {
                 String recipient = entry.getKey();
                 for (Mail mail : entry.getValue()) {
+                    // Supponiamo che 'mail.getMessage()' possa contenere newline
+                    String originalMessage = mail.getMessage();
+
+                   // Sostituisci newline e carriage return con una sequenza "sicura"
+                    String sanitizedMessage = originalMessage
+                            .replace("\n", "\\n")
+                            .replace("\r", "\\r");
                     // When saving, write the recipient field as the specific email address,
                     // not the entire list.
                     bw.write(mail.getId() + ","
                             + mail.getSender().trim() + ","
-                            + recipient + ","
+                            + recipient.trim() + ","
                             + mail.getTitle().trim() + ","
-                            + mail.getMessage().trim() + ","
+                            + sanitizedMessage + ","
                             + mail.getDate().getTime());
                     bw.newLine();
                 }

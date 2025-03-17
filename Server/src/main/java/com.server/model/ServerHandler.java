@@ -65,10 +65,10 @@ public class ServerHandler {
 
                 if (!server.isEmailRegistered(email)) {
                     response = "ERRORE: L'indirizzo email non esiste.";
-                    server.updateLogTable("❌ Errore: L'email " + email + " non esiste.");
+                    server.updateLogTable("Errore: L'email " + email + " non esiste.");
                 } else {
                     response = "SUCCESSO: Login avvenuto con successo.";
-                    server.updateLogTable("✅ Login riuscito per: " + email);
+                    server.updateLogTable(" Login riuscito per: " + email);
                 }
             } else if ("GET_INBOX".equals(clientRequest)) {
                 String userEmail = (String) in.readObject();
@@ -91,7 +91,7 @@ public class ServerHandler {
 
                 if (invalidRecipients.isEmpty()) {
                     response = "SUCCESSO";
-                    server.updateLogTable("📩 Email inviata da " + mail.getSender());
+                    server.updateLogTable(" Email inviata da " + mail.getSender());
                 } else {
                     response = "ERRORE: Il destinatario " + String.join(", ", invalidRecipients) + " non esiste";
                 }

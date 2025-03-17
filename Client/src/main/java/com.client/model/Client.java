@@ -16,9 +16,10 @@ import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Map;
 import java.util.regex.Pattern; //TOGLILO SE NON LO USIAMO PIUUUUUUU
 
-public class Client {
+/*public class Client {
 
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 4000;
@@ -112,61 +113,6 @@ public class Client {
         }
     }
 
-    // Invia un messaggio al server
-    /*public void sendMail() {
-        try {
-            String recipient = "destinatario@example.com";  // Esempio, va ottenuto tramite l'interfaccia utente
-            String subject = "Oggetto del messaggio";
-            String messageText = "Contenuto del messaggio";
-
-            Mail mail = new Mail(1, subject, userEmail, new ArrayList<String>() {{
-                add(recipient);
-            }}, messageText, new Date());
-
-            out.writeObject("SEND_MAIL");
-            out.writeObject(mail);
-            out.flush();
-
-            String response = (String) in.readObject();
-            if ("SUCCESSO".equals(response)) {
-                System.out.println("Messaggio inviato con successo.");
-            } else {
-                showError("Errore nell'invio", "Impossibile inviare il messaggio.");
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            showError("Errore di invio", "Errore durante l'invio del messaggio.");
-        }
-    }*/
-
-    // Metodo per cancellare un messaggio dalla Inbox
-    /*public void deleteMessage(Mail mail) {
-        try {
-            out.writeObject("DELETE_MAIL");
-            out.writeObject(mail);
-            out.flush();
-
-            String response = (String) in.readObject();
-            if ("SUCCESSO".equals(response)) {
-                inbox.remove(mail);
-            } else {
-                showError("Errore", "Impossibile cancellare il messaggio.");
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            showError("Errore", "Errore durante la cancellazione del messaggio.");
-        }
-    }*/
-
-    // Visualizza i dettagli di un messaggio
-    /*public void showMailDetails(MouseEvent event) {
-        Mail selectedMail = inboxListView.getSelectionModel().getSelectedItem();
-        if (selectedMail != null) {
-            String details = "Da: " + selectedMail.getSender() + "\n" +
-                    "Oggetto: " + selectedMail.getTitle() + "\n" +
-                    "Messaggio: " + selectedMail.getMessage();
-            System.out.println(details);
-        }
-    }*/
-
     // Gestisce gli errori e mostra un messaggio all'utente
     private void showError(String title, String message) {
         Platform.runLater(() -> {
@@ -176,5 +122,104 @@ public class Client {
             alert.setContentText(message);
             alert.showAndWait();
         });
+    }
+}*/
+
+public class Client {
+    private static final String SERVER_ADDRESS = "localhost";
+    private static final int SERVER_PORT = 4000;
+
+    // Pattern Singleton per avere un'unica istanza condivisa
+    private static Client instance;
+
+    private Client() { }
+
+    public static Client getInstance() {
+        if (instance == null) {
+            instance = new Client();
+        }
+        return instance;
+    }
+
+    // Metodo per effettuare il login (sostituisce la logica ora presente in ClientHomeController)
+    public String login(String email) {
+        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("LOGIN");
+            out.writeObject(email);
+            out.flush();
+            return (String) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Metodo per ottenere la inbox, centralizzando GET_INBOX
+    public Map<String, Object> getInbox(String userEmail) {
+        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("GET_INBOX");
+            out.writeObject(userEmail);
+            out.flush();
+            return (Map<String, Object>) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Metodo per inviare una mail (centralizza SEND_MAIL)
+    public String sendMail(Mail mail) {
+        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("SEND_MAIL");
+            out.writeObject(mail);
+            out.flush();
+            return (String) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Metodo per cancellare una mail (centralizza DELETE_MAIL)
+    public String deleteMail(String userEmail, Mail mail) {
+        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("DELETE_MAIL");
+            out.writeObject(userEmail);
+            out.writeObject(mail);
+            out.flush();
+            return (String) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Metodo per marcare una mail come letta (centralizza MARK_READ)
+    public String markMailAsRead(String userEmail, int mailId) {
+        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("MARK_READ");
+            out.writeObject(userEmail);
+            out.writeObject(mailId);
+            out.flush();
+            return (String) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

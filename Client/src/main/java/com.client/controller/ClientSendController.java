@@ -1,6 +1,7 @@
 // SendMessageController.java
 package com.client.controller;
 
+import com.client.model.Client;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -22,7 +23,7 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.*;
 
-public class ClientSendController {
+/*public class ClientSendController {
 
     @FXML
     private Button sendButton;
@@ -157,6 +158,122 @@ public class ClientSendController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    public void shutdown() {
+        // Nessuna risorsa da chiudere in questa view
+    }
+}*/
+
+import java.util.ArrayList;
+
+import java.util.List;
+
+public class ClientSendController {
+
+    @FXML
+    private Button sendButton;
+    @FXML
+    private Button backButton;
+    @FXML
+    private TextField recipientTextField;
+    @FXML
+    private TextField subjectTextField;
+    @FXML
+    private TextArea bodyTextField;
+
+    public void handleSend() {
+        System.out.println("DEBUG: handleSend() called");
+
+        String recipientLine = recipientTextField.getText();  // e.g., "alice@ex.com; bob@ex.com"
+        String subject = subjectTextField.getText();
+        String body = bodyTextField.getText();
+
+        if (recipientLine == null || recipientLine.trim().isEmpty()) {
+            showError("Email non valida", "Per favore, inserisci almeno un indirizzo email valido.");
+            return;
+        }
+
+        String[] recipientsArray = recipientLine.split("\\s*[;,]\\s*");
+        List<String> recipients = new ArrayList<>();
+        for (String r : recipientsArray) {
+            String trimmed = r.trim();
+            if (!isValidEmail(trimmed)) {
+                showError("Email non valida", "Indirizzo non valido: " + trimmed);
+                return;
+            }
+            recipients.add(trimmed);
+        }
+
+        String sender = ClientOperationController.getUserEmail();
+        if (sender == null || sender.trim().isEmpty()) {
+            showError("Errore", "L'email del mittente non è disponibile.");
+            return;
+        }
+
+        int generatedId = new java.util.Random().nextInt(100000);
+        Mail mail = new Mail(generatedId, subject, sender, new ArrayList<>(recipients), body, new Date());
+
+        String response = Client.getInstance().sendMail(mail);
+        if (!"SUCCESSO".equals(response)) {
+            showError("Errore nell'invio", "Il server ha risposto: " + response);
+            return;
+        }
+        System.out.println("DEBUG: Email inviata con successo.");
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
+            Parent root = loader.load();
+
+            ClientOperationController controller = loader.getController();
+            controller.setUserEmail(sender);
+            controller.updateInbox();
+            controller.startAutoRefresh();
+
+            Stage stage = (Stage) sendButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Errore", "Impossibile caricare l'interfaccia operativa.");
+        }
+    }
+
+    public void prefillFields(String recipients, String subject, String body) {
+        recipientTextField.setText(recipients);
+        subjectTextField.setText(subject);
+        bodyTextField.setText(body);
+    }
+
+    @FXML
+    public void handleBack() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client-operation.fxml"));
+            Parent root = loader.load();
+
+            ClientOperationController controller = loader.getController();
+            controller.setUserEmail(ClientOperationController.getUserEmail());
+            controller.updateInbox();
+
+            Stage stage = (Stage) backButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Errore", "Impossibile caricare l'interfaccia operativa.");
+        }
+    }
+
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
     public void shutdown() {
         // Nessuna risorsa da chiudere in questa view
     }

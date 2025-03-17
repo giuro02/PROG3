@@ -176,7 +176,7 @@ public class Server {
         readMap.putIfAbsent(userEmail, new HashSet<>());
         readMap.get(userEmail).add(mailId);
         saveReadReceipts();  // Salva subito le modifiche
-        updateLogTable("Messaggio " + mailId + " marcato come letto per " + userEmail);
+       // updateLogTable("Messaggio " + mailId + " marcato come letto per " + userEmail);
     }
     public synchronized int getUnreadCount(String userEmail) {
         List<Mail> allMails = mailboxes.getOrDefault(userEmail, new ArrayList<>());
