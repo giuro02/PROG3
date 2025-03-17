@@ -1,9 +1,7 @@
-com\client\controller\ClientSendController.class
-com\client\model\RefreshClient.class
-com\client\controller\ClientHomeController.class
 com\client\controller\ClientOperationController.class
 module-info.class
 com\client\model\Client.class
 com\client\ClientApplication.class
-com\client\model\ThreadOperation.class
+com\client\controller\ClientSendController.class
+com\client\controller\ClientHomeController.class
 com\client\model\ClientException.class

@@ -14,7 +14,7 @@ public class Server {
     private final Set<String> accounts;
     private final Map<String, List<Mail>> mailboxes;
     private final SimpleStringProperty logTable;
-    private final ObservableList<String> users;
+    private final ObservableList<String> users; //lista osservabile di utenti per aggiornare automaticamente la UI
 
     private static final String ACCOUNTS_FILE = "data.csv";
     private static final String MAILS_FILE = "emails.csv";
@@ -23,7 +23,7 @@ public class Server {
     private Server() {
         accounts = CsvHandler.loadAccounts(ACCOUNTS_FILE);
         mailboxes = CsvHandler.loadMailboxes(MAILS_FILE);
-        loadReadReceipts();
+        loadReadMail();
         logTable = new SimpleStringProperty("");
         users = FXCollections.observableArrayList();
     }
@@ -93,11 +93,11 @@ public class Server {
         });
     }
 
-    // Carica le letture (read receipts) da file
-    private void loadReadReceipts() {
-        File file = new File("readReceipts.csv");
+    // Carica le letture (read Mail) da file
+    private void loadReadMail() {
+        File file = new File("readMail.csv");
         if (!file.exists()) {
-            System.out.println("File readReceipts.csv non trovato. Nessuna lettura caricata.");
+            System.out.println("File readMail.csv non trovato. Nessuna lettura caricata.");
             return;
         }
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
@@ -118,9 +118,9 @@ public class Server {
         }
     }
 
-    // Salva le letture (read receipts) su file
-    private void saveReadReceipts() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("readReceipts.csv", false))) {
+    // Salva le letture (read Mail) su file
+    private void saveReadMail() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("readMail.csv", false))) {
             for (Map.Entry<String, Set<Integer>> entry : readMap.entrySet()) {
                 String email = entry.getKey();
                 for (Integer mailId : entry.getValue()) {
@@ -128,9 +128,9 @@ public class Server {
                     bw.newLine();
                 }
             }
-            System.out.println("DEBUG: Read receipts salvati.");
+            System.out.println("DEBUG: Read Mail salvati.");
         } catch (IOException e) {
-            System.out.println("Errore nel salvataggio di read receipts: " + e.getMessage());
+            System.out.println("Errore nel salvataggio di read Mail: " + e.getMessage());
         }
     }
 
@@ -138,7 +138,7 @@ public class Server {
     public synchronized void markMailAsRead(String userEmail, int mailId) {
         readMap.putIfAbsent(userEmail, new HashSet<>());
         readMap.get(userEmail).add(mailId);
-        saveReadReceipts();  // Salva subito le modifiche
+        saveReadMail();  // Salva subito le modifiche
     }
 
     // Calcola il numero di messaggi non letti per un utente

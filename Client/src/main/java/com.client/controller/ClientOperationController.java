@@ -53,7 +53,7 @@ public class ClientOperationController {
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
             if (userEmail != null && !userEmail.isEmpty()) {
-                updateInbox();
+                updateInbox(); //ogni 5 sec chiama updateInbox
             }
         }, 0, 5, TimeUnit.SECONDS);
     }
