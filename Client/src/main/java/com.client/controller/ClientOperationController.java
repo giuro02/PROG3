@@ -3,6 +3,7 @@ package com.client.controller;
 import com.client.model.Client;
 import com.common.Mail;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -66,15 +67,52 @@ public class ClientOperationController {
             int unreadCount = (int) responseMap.get("unreadCount");
 
             Platform.runLater(() -> {
-                inboxListView.getItems().setAll(inbox);
+                ObservableList<Mail> currentItems = inboxListView.getItems();
+                // Rimuove i messaggi che non sono più presenti nella lista ricevuta dal server
+                currentItems.removeIf(mail -> !inbox.contains(mail));
+                // Aggiunge i messaggi nuovi che non sono già presenti
+                for (Mail mail : inbox) {
+                    if (!currentItems.contains(mail)) {
+                        currentItems.add(mail);
+                    }
+                }
+                // Aggiorna l'etichetta delle notifiche
                 if (unreadCount > 0) {
                     newMessageLabel.setText("New " + unreadCount + " messages!");
                 } else {
                     newMessageLabel.setText("");
                 }
             });
+
         }
     }
+
+
+    /*public void updateInbox() {
+    Map<String, Object> responseMap = Client.getInstance().getInbox(userEmail);
+    if (responseMap != null) {
+        List<Mail> inbox = (List<Mail>) responseMap.get("mails");
+        int unreadCount = (int) responseMap.get("unreadCount");
+
+        Platform.runLater(() -> {
+            // Ottieni la lista attuale dei messaggi
+            ObservableList<Mail> currentItems = inboxListView.getItems();
+            // Per ogni messaggio ricevuto, se non è già presente, aggiungilo
+            for (Mail mail : inbox) {
+                if (!currentItems.contains(mail)) {
+                    currentItems.add(mail);
+                }
+            }
+            // Aggiorna l'etichetta delle notifiche (qui puoi anche riflettere solo il numero dei nuovi messaggi, se lo preferisci)
+            if (unreadCount > 0) {
+                newMessageLabel.setText("New " + unreadCount + " messages!");
+            } else {
+                newMessageLabel.setText("");
+            }
+        });
+    }
+}
+*/
 
     // Resetta il contatore dell'inbox (usato in fase di login)
     public void resetInboxSize() {
